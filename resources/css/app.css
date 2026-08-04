@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root { color-scheme: light; }
+    html.dark { color-scheme: dark; }
+    body { @apply bg-app text-ink antialiased; }
+    button, a, input, select, textarea { @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40; }
+}
+
+@layer components {
+    .app-shell { @apply min-h-screen bg-app text-ink; }
+    .sidebar-link { @apply flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-muted transition hover:bg-brand/10 hover:text-brand; }
+    .sidebar-link.active { @apply bg-brand text-white shadow-sm hover:bg-brand hover:text-white; }
+    .surface { @apply rounded-2xl border border-line bg-surface shadow-card; }
+    .card { @apply rounded-2xl border border-line bg-surface p-5 shadow-card; }
+    .panel { @apply rounded-2xl border border-line bg-surface p-4 shadow-card sm:p-6; }
+    .table { @apply w-full min-w-[720px] text-left text-sm; }
+    .table th { @apply border-b border-line bg-surface-soft px-4 py-3 text-[11px] font-bold uppercase tracking-[0.16em] text-muted; }
+    .table td { @apply border-b border-line/70 px-4 py-4 align-middle; }
+    .table tr:last-child td { @apply border-b-0; }
+    .input { @apply mt-1 block min-h-11 w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-brand focus:ring-brand/20; }
+    .button { @apply inline-flex min-h-11 items-center justify-center rounded-xl bg-ink px-4 py-2.5 text-sm font-bold text-white transition hover:bg-brand active:scale-[.98]; }
+    .button-secondary { @apply inline-flex min-h-11 items-center justify-center rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-bold text-ink transition hover:border-brand hover:text-brand; }
+    .section-title { @apply text-base font-bold tracking-tight text-ink; }
+    .muted { @apply text-sm text-muted; }
+    .row { @apply border-b border-line/70 py-3 text-sm last:border-0; }
+    .financial-agenda-dashboard table th:nth-child(7), .financial-agenda-dashboard table td:nth-child(7) { @apply hidden; }
+    .business-coach-markdown { @apply max-w-none text-sm leading-6 text-ink; }
+    .business-coach-markdown h1, .business-coach-markdown h2, .business-coach-markdown h3 { @apply mb-2 mt-5 font-black tracking-tight text-ink first:mt-0; }
+    .business-coach-markdown h1 { @apply text-xl; }
+    .business-coach-markdown h2 { @apply text-lg; }
+    .business-coach-markdown h3 { @apply text-base; }
+    .business-coach-markdown p { @apply mb-3; }
+    .business-coach-markdown ul { @apply mb-4 list-disc space-y-1 pl-5; }
+    .business-coach-markdown ol { @apply mb-4 list-decimal space-y-1 pl-5; }
+    .business-coach-markdown strong { @apply font-black; }
+    .business-coach-markdown code { @apply rounded bg-surface-soft px-1 py-0.5 text-xs; }
+}
+
+@layer utilities {
+    .bg-app { background-color: #f7f8fc; }
+    .bg-surface { background-color: #ffffff; }
+    .bg-surface-soft { background-color: #f0f4ff; }
+    .text-ink { color: #0e1b31; }
+    .text-muted { color: #687386; }
+    .border-line { border-color: #d9deea; }
+    .text-brand { color: #087d74; }
+    .bg-brand { background-color: #087d74; }
+    .shadow-card { box-shadow: 0 8px 24px rgba(19, 35, 61, .05); }
+    .dark .bg-app { background-color: #0c1424; }
+    .dark .bg-surface { background-color: #121d31; }
+    .dark .bg-surface-soft { background-color: #18263e; }
+    .dark .text-ink { color: #edf4ff; }
+    .dark .text-muted { color: #aab7ca; }
+    .dark .border-line { border-color: #2a3952; }
+    .dark .shadow-card { box-shadow: 0 8px 24px rgba(0, 0, 0, .16); }
+}

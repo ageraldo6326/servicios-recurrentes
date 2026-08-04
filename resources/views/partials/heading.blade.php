@@ -1,0 +1,1 @@
+<div class="mb-6 flex items-center justify-between"><div><h1 class="text-3xl font-bold">{{ $heading }}</h1>@isset($subheading)<p class="mt-1 text-slate-500">{{ $subheading }}</p>@endisset</div>@isset($action)<a href="{{ $action }}" class="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700">Nuevo</a>@endisset</div>
