@@ -26,6 +26,8 @@ use App\Livewire\FinancialAgenda\Commitments\Index as CommitmentsIndex;
 use App\Livewire\FinancialAgenda\Dashboard as FinancialAgendaDashboard;
 use App\Livewire\Gestiones\Index as GestionesIndex;
 use App\Livewire\Providers\Index as ProvidersIndex;
+use App\Livewire\UnplannedExpenses\Dashboard as UnplannedExpensesDashboard;
+use App\Livewire\Breaks\Dashboard as BreaksDashboard;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome');
@@ -51,6 +53,7 @@ Route::middleware(['auth'])->group(function (): void {
     Route::resource('payments', PaymentController::class)->only(['index', 'create', 'store']);
     Route::post('payments/{payment}/validate', [PaymentController::class, 'validatePayment'])->name('payments.validate');
     Route::get('gestions', GestionesIndex::class)->name('gestions.index');
+    Route::get('descansos', BreaksDashboard::class)->name('breaks.dashboard');
     Route::resource('gestions', GestionController::class)->only(['create', 'store']);
     Route::resource('provider-invoices', ProviderInvoiceController::class)->only(['index', 'create', 'store']);
     Route::post('logout', function (Logout $logout) {
@@ -71,6 +74,7 @@ Route::middleware(['auth'])->group(function (): void {
         Route::get('cotizaciones/{quote}/pdf', [CommercialQuoteController::class, 'pdf'])->name('quotes.pdf');
         Route::post('cotizaciones/{quote}/email', [CommercialQuoteController::class, 'email'])->name('quotes.email');
         Route::get('facturas', [CommercialInvoiceController::class, 'index'])->name('invoices.index');
+        Route::get('gastos-hormiga', UnplannedExpensesDashboard::class)->name('unplanned-expenses.dashboard');
         Route::get('facturas/crear', [CommercialInvoiceController::class, 'create'])->name('invoices.create');
         Route::post('facturas', [CommercialInvoiceController::class, 'store'])->name('invoices.store');
         Route::get('facturas/{invoice}/editar', [CommercialInvoiceController::class, 'edit'])->name('invoices.edit');

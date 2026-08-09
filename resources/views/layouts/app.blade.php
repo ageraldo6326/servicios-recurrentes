@@ -56,12 +56,16 @@
                     class="sidebar-link {{ request()->routeIs('dashboard.executive') ? 'active' : '' }}"><span
                         class="text-lg">◒</span> Proyección financiera</a>
                 <a wire:navigate href="{{ route('financial-agenda.index') }}"
-                        class="sidebar-link {{ request()->routeIs('financial-agenda.*') ? 'active' : '' }}"><span
+                            class="sidebar-link {{ request()->routeIs('financial-agenda.*') ? 'active' : '' }}"><span
                             class="text-lg">◷</span>Gestión de Compromisos</a>
+                <a wire:navigate href="{{ route('breaks.dashboard') }}"
+                    class="sidebar-link {{ request()->routeIs('breaks.*') ? 'active' : '' }}"><span
+                        class="text-lg">◌</span> Descansos activos</a>
                 <div class="mt-5 border-t border-line pt-4"><p class="px-3 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted">Comercial</p>
                     <a wire:navigate href="{{ route('commercial.dashboard') }}" class="sidebar-link {{ request()->routeIs('commercial.dashboard') ? 'active' : '' }}"><span class="text-lg">◉</span> Dashboard</a>
                     <a wire:navigate href="{{ route('commercial.quotes.index') }}" class="sidebar-link {{ request()->routeIs('commercial.quotes.*') ? 'active' : '' }}"><span class="text-lg">◇</span> Cotizaciones</a>
                     <a wire:navigate href="{{ route('commercial.invoices.index') }}" class="sidebar-link {{ request()->routeIs('commercial.invoices.*') ? 'active' : '' }}"><span class="text-lg">▧</span> Facturas</a>
+                    <a wire:navigate href="{{ route('commercial.unplanned-expenses.dashboard') }}" class="sidebar-link {{ request()->routeIs('commercial.unplanned-expenses.*') ? 'active' : '' }}"><span class="text-lg">⌁</span> Gastos hormiga</a>
                 </div>
                 <a wire:navigate href="{{ route('settings.company.edit') }}" class="sidebar-link {{ request()->routeIs('settings.*') ? 'active' : '' }}"><span class="text-lg">⚙</span> Configuración</a>
             </nav>
@@ -91,6 +95,9 @@
                     <button @click="menu = !menu"
                         class="grid h-10 w-10 place-items-center rounded-xl border border-line text-xl lg:hidden"
                         aria-label="Abrir menú">☰</button>
+                    @auth
+                        <livewire:breaks.global-cycle />
+                    @endauth
                     <div class="ml-auto flex items-center gap-2">
                         <button type="button" x-on:click="$dispatch('business-coach-analyze')" wire:loading.attr="disabled"
                             class="button-secondary" aria-label="Analizar pantalla">

@@ -171,7 +171,7 @@ Prioridades:
 Stack preferido:
 
 - Laravel 12
-- PHP 8.3+
+- PHP 8.2+
 - MySQL
 - Blade
 - Livewire
