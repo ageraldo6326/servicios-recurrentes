@@ -59,4 +59,68 @@ Si la respuesta es no, va al backlog.
 5. Módulos operativos
 6. Dashboards
 7. Pruebas
+
+## Actualizar la versión hospedada
+
+Ejecutar estos comandos desde la carpeta del proyecto en el servidor:
+
+```bash
+cd /ruta/servicios-recurrentes
+
+git pull origin main
+composer install --no-dev --optimize-autoloader
+
+npm ci
+npm run build
+
+php artisan migrate --force
+php artisan storage:link
+
+php artisan optimize:clear
+php artisan optimize
+
+php artisan queue:restart
+```
+
+Antes de ejecutar `php artisan migrate --force`:
+
+1. Confirmar que `.env` apunta a la base de datos de producción correcta.
+2. Crear un respaldo de la base de datos.
+3. Verificar que las migraciones sean aditivas y esperadas.
+
+Comprobar el estado de las migraciones:
+
+```bash
+php artisan migrate:status
+```
+
+Configuración mínima recomendada en `.env`:
+
+```env
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://tu-dominio.com
+FILESYSTEM_DISK=local
+```
+
+El módulo de pausas permite sonidos personalizados de hasta 10 MB. El servidor debe aceptar al menos:
+
+```ini
+upload_max_filesize=10M
+post_max_size=12M
+```
+
+También debe existir el enlace público de almacenamiento:
+
+```text
+public/storage -> storage/app/public
+```
+
+Para verificar un sonido cargado, abrir en el navegador:
+
+```text
+https://tu-dominio.com/storage/break-sounds/usuario/archivo.mp3
+```
+
+La respuesta debe ser `200 OK` y utilizar un tipo MIME de audio, por ejemplo `audio/mpeg` para archivos MP3.
 # servicios-recurrentes

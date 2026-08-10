@@ -3,12 +3,15 @@
 namespace App\Livewire\FinancialAgenda;
 
 use App\Actions\RegisterCommitmentPayment;
+use App\Enums\CommitmentPaymentStatus;
 use App\Enums\ContractedServiceStatus;
 use App\Enums\FinancialCommitmentPriority;
 use App\Models\Beneficiary;
+use App\Models\CommitmentPayment;
 use App\Models\ContractedService;
 use App\Models\ExchangeRate;
 use App\Models\FinancialCommitment;
+use App\Services\CommitmentOccurrenceService;
 use App\Services\FinancialCommitmentAgendaService;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -44,6 +47,8 @@ class Dashboard extends Component
 
     public ?int $paymentCommitmentId = null;
 
+    public ?int $paymentOccurrenceId = null;
+
     public string $paymentDate = '';
 
     public string $amountPaid = '';
@@ -77,13 +82,15 @@ class Dashboard extends Component
         $this->reset(['period', 'status', 'beneficiaryId', 'category', 'customStart', 'customEnd']);
     }
 
-    public function openPaymentForm(int $commitmentId): void
+    public function openPaymentForm(int $occurrenceId): void
     {
-        $commitment = FinancialCommitment::query()->findOrFail($commitmentId);
+        $occurrence = CommitmentPayment::query()->with('financialCommitment')->findOrFail($occurrenceId);
+        $commitment = $occurrence->financialCommitment;
         Gate::authorize('update', $commitment);
 
         $this->resetValidation();
         $this->paymentCommitmentId = $commitment->id;
+        $this->paymentOccurrenceId = $occurrence->id;
         $this->paymentDate = CarbonImmutable::now(config('app.timezone'))->toDateString();
         $this->amountPaid = (string) ($commitment->suggested_amount ?? '');
         $this->paymentObservations = '';
@@ -98,7 +105,10 @@ class Dashboard extends Component
 
     public function savePayment(RegisterCommitmentPayment $registerPayment): void
     {
-        $commitment = FinancialCommitment::query()->findOrFail($this->paymentCommitmentId);
+        $occurrence = CommitmentPayment::query()
+            ->with('financialCommitment')
+            ->findOrFail($this->paymentOccurrenceId);
+        $commitment = $occurrence->financialCommitment;
         Gate::authorize('update', $commitment);
 
         $validated = $this->validate([
@@ -110,18 +120,15 @@ class Dashboard extends Component
 
         $receiptPath = $this->receipt?->store('commitment-receipts', 'public');
         $paidAt = CarbonImmutable::parse($validated['paymentDate'], config('app.timezone'))->startOfDay();
-        $periodStart = CarbonImmutable::now(config('app.timezone'))->startOfMonth();
-
-        $registerPayment->handle(
-            $commitment,
-            $periodStart,
+        $registerPayment->handleOccurrence(
+            $occurrence,
             $paidAt,
             $validated['amountPaid'] ?: null,
             $validated['paymentObservations'] ?: null,
             $receiptPath,
         );
 
-        $this->successMessage = 'Pago registrado y siguiente período generado automáticamente.';
+        $this->successMessage = 'Pago registrado para la obligación seleccionada.';
         $this->resetPaymentForm();
     }
 
@@ -141,22 +148,45 @@ class Dashboard extends Component
         $this->reset(['exchangeRate']);
     }
 
-    public function render(FinancialCommitmentAgendaService $agendaService): View
-    {
+    public function render(
+        FinancialCommitmentAgendaService $agendaService,
+        CommitmentOccurrenceService $occurrenceService,
+    ): View {
         $today = CarbonImmutable::now(config('app.timezone'))->startOfDay();
         [$rangeStart, $rangeEnd] = $this->selectedRange($today);
 
         $commitments = FinancialCommitment::query()
-            ->with(['beneficiary', 'payments' => fn ($query) => $query->whereDate('period_start', $today->startOfMonth()->toDateString())])
+            ->with('beneficiary')
             ->where('is_active', true)
             ->when($this->beneficiaryId !== '', fn ($query) => $query->where('beneficiary_id', $this->beneficiaryId))
             ->when($this->category !== '', fn ($query) => $query->where('category', $this->category))
             ->orderBy('name')
             ->get()
-            ->map(function (FinancialCommitment $commitment) use ($agendaService, $today): array {
-                return ['commitment' => $commitment, 'agenda' => $agendaService->forDate($commitment, $today)];
+            ->flatMap(function (FinancialCommitment $commitment) use ($agendaService, $occurrenceService, $today): array {
+                return $occurrenceService->ensureForDate($commitment, $today)
+                    ->map(function (CommitmentPayment $occurrence) use ($commitment, $agendaService, $today): array {
+                        $occurrence->setRelation('financialCommitment', $commitment);
+
+                        return ['commitment' => $commitment, 'agenda' => $agendaService->forOccurrence($occurrence, $today)];
+                    })
+                    ->all();
             })
-            ->filter(fn (array $item): bool => $this->matchesFilters($item['agenda'], $rangeStart, $rangeEnd))
+            ->values();
+
+        $nextOccurrenceIds = $commitments
+            ->filter(fn (array $item): bool => $item['agenda']['period_start']->greaterThan($today->startOfMonth()))
+            ->groupBy(fn (array $item): int => $item['commitment']->id)
+            ->map(fn (Collection $items): int => $items->sortBy(fn (array $item): CarbonImmutable => $item['agenda']['period_start'])->first()['agenda']['occurrence']->id)
+            ->values()
+            ->all();
+
+        $commitments = $commitments
+            ->filter(fn (array $item): bool => $this->matchesFilters(
+                $item['agenda'],
+                $rangeStart,
+                $rangeEnd,
+                in_array($item['agenda']['occurrence']->id, $nextOccurrenceIds, true),
+            ))
             ->sort(function (array $first, array $second): int {
                 $firstGroup = $this->sortGroup($first['agenda']);
                 $secondGroup = $this->sortGroup($second['agenda']);
@@ -187,7 +217,7 @@ class Dashboard extends Component
             'commitments' => $commitments,
             'beneficiaries' => Beneficiary::query()->where('is_active', true)->orderBy('name')->get(),
             'categories' => $categories,
-            'summary' => $this->summary($commitments),
+            'summary' => $this->summary($commitments, $today),
             'currentRate' => $currentRate,
             'monthlyBenefitUsd' => $monthlyBenefitUsd,
             'monthlyBenefitDop' => $monthlyBenefitDop,
@@ -217,14 +247,18 @@ class Dashboard extends Component
         return $end->lessThan($start) ? [$end->startOfDay(), $start->endOfDay()] : [$start, $end];
     }
 
-    private function matchesFilters(array $agenda, CarbonImmutable $rangeStart, CarbonImmutable $rangeEnd): bool
-    {
+    private function matchesFilters(
+        array $agenda,
+        CarbonImmutable $rangeStart,
+        CarbonImmutable $rangeEnd,
+        bool $isNextOccurrence = false,
+    ): bool {
         $isPaid = $agenda['is_paid'];
-        $isOverdue = ! $isPaid && $agenda['due_days'] < 0;
+        $isOverdue = $agenda['status'] === CommitmentPaymentStatus::Overdue;
         $statusMatches = match ($this->status) {
             'paid' => $isPaid,
             'overdue' => $isOverdue,
-            'pending' => ! $isPaid,
+            'pending' => ! $isPaid && $agenda['status'] !== CommitmentPaymentStatus::Cancelled,
             default => true,
         };
 
@@ -236,6 +270,10 @@ class Dashboard extends Component
             return $isOverdue || $agenda['due_date']->isSameDay($rangeStart) || $agenda['cutoff_date']?->isSameDay($rangeStart);
         }
 
+        if ($this->period === 'month' && $isNextOccurrence) {
+            return true;
+        }
+
         $dueInRange = $agenda['due_date']->betweenIncluded($rangeStart, $rangeEnd);
         $cutoffInRange = $agenda['cutoff_date']?->betweenIncluded($rangeStart, $rangeEnd) ?? false;
 
@@ -243,14 +281,18 @@ class Dashboard extends Component
     }
 
     /** @param Collection<int, array> $commitments */
-    private function summary($commitments): array
+    private function summary(Collection $commitments, CarbonImmutable $today): array
     {
+        $currentPeriod = $commitments->filter(
+            fn (array $item): bool => $item['agenda']['period_start']->isSameDay($today->startOfMonth()),
+        );
+
         return [
             'total' => $commitments->count(),
-            'overdue' => $commitments->where('agenda.priority', FinancialCommitmentPriority::Critical)->count(),
+            'overdue' => $commitments->where('agenda.status', CommitmentPaymentStatus::Overdue)->count(),
             'today' => $commitments->whereIn('agenda.priority', [FinancialCommitmentPriority::High])->count(),
             'paid' => $commitments->where('agenda.is_paid', true)->count(),
-            'total_amount' => $commitments->sum(fn (array $item): float => (float) ($item['commitment']->suggested_amount ?? 0)),
+            'total_amount' => $currentPeriod->sum(fn (array $item): float => (float) ($item['agenda']['balance'] ?? $item['agenda']['expected_amount'] ?? 0)),
         ];
     }
 
@@ -263,16 +305,16 @@ class Dashboard extends Component
 
     private function sortGroup(array $agenda): int
     {
-        if ($agenda['is_paid']) {
+        if ($agenda['status'] === CommitmentPaymentStatus::Paid || $agenda['status'] === CommitmentPaymentStatus::Cancelled) {
             return 2;
         }
 
-        return $agenda['due_days'] < 0 ? 0 : 1;
+        return $agenda['status'] === CommitmentPaymentStatus::Overdue ? 0 : 1;
     }
 
     private function resetPaymentForm(): void
     {
-        $this->reset(['paymentCommitmentId', 'paymentDate', 'amountPaid', 'paymentObservations', 'receipt']);
+        $this->reset(['paymentCommitmentId', 'paymentOccurrenceId', 'paymentDate', 'amountPaid', 'paymentObservations', 'receipt']);
         $this->resetValidation();
     }
 }

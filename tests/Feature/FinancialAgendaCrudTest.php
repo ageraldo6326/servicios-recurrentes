@@ -165,20 +165,21 @@ class FinancialAgendaCrudTest extends TestCase
 
         Livewire::actingAs($user)
             ->test(Dashboard::class)
-            ->call('openPaymentForm', $commitment->id)
+            ->call('openPaymentForm', CommitmentPayment::query()->where('financial_commitment_id', $commitment->id)->firstOrFail()->id)
             ->set('paymentDate', now()->toDateString())
             ->set('amountPaid', '20.00')
             ->set('paymentObservations', 'Pago confirmado.')
             ->call('savePayment')
             ->assertSet('paymentCommitmentId', null)
-            ->assertSee('Pago registrado y siguiente período generado automáticamente.');
+            ->assertSee('Pago registrado para la obligación seleccionada.');
 
         $this->assertDatabaseHas('commitment_payments', [
             'financial_commitment_id' => $commitment->id,
             'status' => 'paid',
             'amount_paid' => 20,
         ]);
-        $this->assertSame(2, CommitmentPayment::query()->where('financial_commitment_id', $commitment->id)->count());
+        $this->assertSame(1, CommitmentPayment::query()->where('financial_commitment_id', $commitment->id)->where('status', 'paid')->count());
+        $this->assertSame(1, CommitmentPayment::query()->where('financial_commitment_id', $commitment->id)->firstOrFail()->entries()->count());
     }
 
     public function test_dashboard_orders_overdue_pending_and_paid_groups_in_that_order(): void

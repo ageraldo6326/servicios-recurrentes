@@ -125,7 +125,7 @@
                             </tr>
                             @php($paidSeparatorShown = true)
                         @endif
-                        @php($trafficClass = $agenda['is_paid'] ? 'bg-emerald-500 ring-emerald-200 dark:ring-emerald-900' : ($agenda['due_days'] <= 5 ? 'bg-red-500 ring-red-200 dark:ring-red-900' : ($agenda['due_days'] <= 10 ? 'bg-amber-400 ring-amber-200 dark:ring-amber-900' : 'bg-emerald-500 ring-emerald-200 dark:ring-emerald-900')))
+                        @php($trafficClass = $agenda['is_paid'] ? 'bg-emerald-500 ring-emerald-200 dark:ring-emerald-900' : ($agenda['status']->value === 'overdue' ? 'bg-red-500 ring-red-200 dark:ring-red-900' : ($agenda['due_days'] !== null && $agenda['due_days'] <= 5 ? 'bg-amber-400 ring-amber-200 dark:ring-amber-900' : 'bg-sky-500 ring-sky-200 dark:ring-sky-900')))
                         @if ($agenda['is_paid'])
                             @php($trafficClass = 'bg-brand ring-brand/30 dark:ring-brand/50')
                         @endif
@@ -140,12 +140,13 @@
 )
                         <tr>
                             <td><span class="inline-block h-4 w-4 rounded-full ring-4 {{ $trafficClass }}"
-                                    title="{{ $agenda['is_paid'] ? 'Pagado' : ($agenda['due_days'] <= 5 ? 'Pago urgente: 5 días o menos' : ($agenda['due_days'] <= 10 ? 'Pago próximo: entre 6 y 10 días' : 'Pago futuro: más de 10 días')) }}"
+                                    title="{{ $agenda['is_paid'] ? ($agenda['payment_timing_label'] ?: 'Pagado') : ($agenda['status']->value === 'overdue' ? 'Pago vencido' : 'Obligación pendiente') }}"
                                     aria-label="{{ $agenda['is_paid'] ? 'Pagado' : 'Riesgo de pago' }}"></span></td>
                             <td>
                                 <p class="font-bold text-ink">{{ $commitment->name }}</p>
-                                <p class="text-xs text-muted">{{ $agenda['reminder'] ?: 'Sin recordatorio activo' }}
+                                <p class="text-xs text-muted">{{ $agenda['payment_timing_label'] ?: ($agenda['reminder'] ?: 'Sin recordatorio activo') }}
                                 </p>
+                                <p class="text-xs text-muted">Período {{ $agenda['period_start']->format('m/Y') }}</p>
                             </td>
                             <td class="text-sm text-muted">{{ $commitment->beneficiary->name }}</td>
                             <td class="text-sm text-muted">{{ $commitment->category }}</td>
@@ -158,15 +159,16 @@
                                     class="inline-flex rounded-lg border px-2.5 py-1 text-xs font-black {{ $dueClass }}">{{ $agenda['due_label'] }}</span>
                             </td>
                             <td class="text-sm font-semibold text-ink">
-                                {{ $commitment->suggested_amount !== null ? number_format((float) $commitment->suggested_amount, 2) : '—' }}
+                                {{ $agenda['expected_amount'] !== null ? number_format($agenda['expected_amount'], 2) : '—' }}
+                                @if ($agenda['balance'] !== null && $agenda['balance'] > 0)<span class="block text-xs font-normal text-muted">Saldo {{ number_format($agenda['balance'], 2) }}</span>@endif
                             </td>
                             <td><span
-                                    class="rounded-full px-2.5 py-1 text-[10px] font-black uppercase {{ $agenda['is_paid'] ? 'bg-emerald-100 text-emerald-700' : ($agenda['due_days'] < 0 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700') }}">{{ $agenda['is_paid'] ? 'Pagado' : ($agenda['due_days'] < 0 ? 'Vencido' : 'Pendiente') }}</span>
+                                    class="rounded-full px-2.5 py-1 text-[10px] font-black uppercase {{ $agenda['is_paid'] ? 'bg-emerald-100 text-emerald-700' : ($agenda['status']->value === 'overdue' ? 'bg-red-100 text-red-700' : ($agenda['status']->value === 'partially_paid' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700')) }}">{{ str_replace('_', ' ', $agenda['status']->value) }}</span>
                             </td>
                             <td>
-                                <div class="flex items-center gap-2 whitespace-nowrap"><button type="button"
-                                        wire:click="openPaymentForm({{ $commitment->id }})"
-                                        class="button min-h-9 px-3 py-1 text-xs">Registrar pago</button><a wire:navigate
+                                <div class="flex items-center gap-2 whitespace-nowrap">@if (!$agenda['is_paid'])<button type="button"
+                                        wire:click="openPaymentForm({{ $agenda['occurrence']->id }})"
+                                        class="button min-h-9 px-3 py-1 text-xs">Registrar pago</button>@endif<a wire:navigate
                                         class="button-secondary min-h-9 px-3 py-1 text-xs"
                                         href="{{ route('financial-agenda.commitments.edit', $commitment) }}">Editar</a>
                                 </div>
@@ -190,7 +192,7 @@
                         Compromisos pagados</div>
                     @php($paidSeparatorShown = true)
                 @endif
-                @php($mobileDueClass = $agenda['is_paid'] ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : ($agenda['due_days'] <= 5 ? 'border-red-200 bg-red-50 text-red-700' : ($agenda['due_days'] <= 10 ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700')))
+                @php($mobileDueClass = $agenda['is_paid'] ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : ($agenda['status']->value === 'overdue' ? 'border-red-200 bg-red-50 text-red-700' : ($agenda['due_days'] !== null && $agenda['due_days'] <= 5 ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-sky-200 bg-sky-50 text-sky-700')))
                 @if ($agenda['is_paid'])
                     @php($mobileDueClass = 'border-brand/30 bg-brand/10 text-brand')
                 @endif
@@ -201,7 +203,7 @@
                             <p class="text-sm text-muted">{{ $commitment->beneficiary->name }} ·
                                 {{ $commitment->category }}</p>
                         </div><span
-                            class="rounded-full px-2 py-1 text-[10px] font-black uppercase {{ $agenda['is_paid'] ? 'bg-emerald-100 text-emerald-700' : ($agenda['due_days'] < 0 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700') }}">{{ $agenda['is_paid'] ? 'Pagado' : ($agenda['due_days'] < 0 ? 'Vencido' : 'Pendiente') }}</span>
+                            class="rounded-full px-2 py-1 text-[10px] font-black uppercase {{ $agenda['is_paid'] ? 'bg-emerald-100 text-emerald-700' : ($agenda['status']->value === 'overdue' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700') }}">{{ str_replace('_', ' ', $agenda['status']->value) }}</span>
                     </div>
                     <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
                         <div>
@@ -211,7 +213,7 @@
                         <div>
                             <p class="text-xs text-muted">Monto sugerido</p>
                             <p class="font-semibold text-ink">
-                                {{ $commitment->suggested_amount !== null ? number_format((float) $commitment->suggested_amount, 2) : '—' }}
+                                {{ $agenda['expected_amount'] !== null ? number_format($agenda['expected_amount'], 2) : '—' }}
                             </p>
                         </div>
                         <div>
@@ -223,8 +225,8 @@
                             <p class="text-xs text-muted">Pago</p><span
                                 class="mt-1 inline-flex rounded-lg border px-2 py-1 text-xs font-black {{ $mobileDueClass }}">{{ $agenda['due_label'] }}</span>
                         </div>
-                    </div><button type="button" wire:click="openPaymentForm({{ $commitment->id }})"
-                        class="button mt-4 w-full text-xs">Registrar pago</button><a wire:navigate
+                    </div>@if (!$agenda['is_paid'])<button type="button" wire:click="openPaymentForm({{ $agenda['occurrence']->id }})"
+                        class="button mt-4 w-full text-xs">Registrar pago</button>@endif<a wire:navigate
                         class="button-secondary mt-2 w-full text-xs"
                         href="{{ route('financial-agenda.commitments.edit', $commitment) }}">Editar compromiso</a>
                 </article>
@@ -234,15 +236,14 @@
         </div>
     </div>
 
-    @if ($paymentCommitmentId)
+    @if ($paymentOccurrenceId)
         <div class="fixed inset-0 z-50 grid place-items-center bg-ink/50 p-4" role="dialog" aria-modal="true">
             <div class="panel w-full max-w-lg" wire:click.stop>
                 <div class="mb-5 flex items-start justify-between gap-4">
                     <div>
                         <p class="text-xs font-black uppercase tracking-[0.14em] text-brand">estión de Compromisos</p>
                         <h2 class="mt-1 text-xl font-black text-ink">Registrar pago</h2>
-                        <p class="mt-1 text-sm text-muted">Se marcará el período actual como pagado y se preparará el
-                            siguiente.</p>
+                        <p class="mt-1 text-sm text-muted">El pago se aplicará únicamente a la obligación seleccionada.</p>
                     </div><button type="button" wire:click="closePaymentForm" class="button-secondary px-3"
                         aria-label="Cerrar">×</button>
                 </div>

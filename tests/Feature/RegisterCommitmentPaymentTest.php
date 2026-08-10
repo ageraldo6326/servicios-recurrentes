@@ -17,7 +17,7 @@ class RegisterCommitmentPaymentTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_registering_a_payment_marks_current_period_paid_and_creates_next_period(): void
+    public function test_registering_a_payment_marks_only_the_selected_period_paid(): void
     {
         $commitment = $this->commitment(31);
 
@@ -33,10 +33,11 @@ class RegisterCommitmentPaymentTest extends TestCase
         $this->assertSame(CommitmentPaymentStatus::Paid, $payment->status);
         $this->assertSame('2026-08-04', $payment->paid_at->toDateString());
         $this->assertSame(1, CommitmentPayment::query()->where('financial_commitment_id', $commitment->id)->whereDate('period_start', '2026-08-01')->where('status', 'paid')->where('receipt_path', 'commitment-receipts/payment.pdf')->count());
-        $this->assertSame(1, CommitmentPayment::query()->where('financial_commitment_id', $commitment->id)->whereDate('period_start', '2026-09-01')->whereDate('due_date', '2026-09-30')->where('status', 'pending')->count());
+        $this->assertSame(1, CommitmentPayment::query()->where('financial_commitment_id', $commitment->id)->count());
+        $this->assertSame(1, $payment->entries()->count());
     }
 
-    public function test_registering_the_same_period_does_not_duplicate_the_next_period(): void
+    public function test_registering_the_same_period_accumulates_payment_entries_without_creating_a_next_period(): void
     {
         $commitment = $this->commitment(10);
         $action = app(RegisterCommitmentPayment::class);
@@ -45,8 +46,9 @@ class RegisterCommitmentPaymentTest extends TestCase
         $action->handle($commitment, $period, CarbonImmutable::parse('2026-08-05'), null, null, null);
         $action->handle($commitment, $period, CarbonImmutable::parse('2026-08-06'), '200.00', null, null);
 
-        $this->assertSame(2, CommitmentPayment::query()->where('financial_commitment_id', $commitment->id)->count());
-        $this->assertSame(1, CommitmentPayment::query()->where('financial_commitment_id', $commitment->id)->whereDate('period_start', '2026-08-01')->where('amount_paid', '200.00')->count());
+        $this->assertSame(1, CommitmentPayment::query()->where('financial_commitment_id', $commitment->id)->count());
+        $this->assertSame(2, CommitmentPayment::query()->where('financial_commitment_id', $commitment->id)->firstOrFail()->entries()->count());
+        $this->assertSame('200.00', (string) CommitmentPayment::query()->where('financial_commitment_id', $commitment->id)->value('amount_paid'));
     }
 
     private function commitment(int $dueDay): FinancialCommitment
