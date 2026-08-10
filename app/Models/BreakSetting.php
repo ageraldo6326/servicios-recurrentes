@@ -11,7 +11,7 @@ class BreakSetting extends Model
     protected $fillable = [
         'user_id', 'is_enabled', 'work_minutes', 'break_minutes',
         'sound_on_break', 'sound_on_return', 'visual_alert', 'created_by', 'updated_by',
-        'custom_sound_path',
+        'custom_sound_path', 'custom_break_sound_path',
     ];
 
     protected function casts(): array

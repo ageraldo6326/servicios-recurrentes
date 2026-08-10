@@ -16,6 +16,8 @@ class GlobalCycle extends Component
 
     public ?string $customSoundUrl = null;
 
+    public ?string $customBreakSoundUrl = null;
+
     public ?int $sessionId = null;
 
     public int $remainingSeconds = 0;
@@ -111,6 +113,7 @@ class GlobalCycle extends Component
         $this->statusLabel = $snapshot['status_label'];
         $this->targetAt = $snapshot['target_at'];
         $this->customSoundUrl = $snapshot['custom_sound_url'];
+        $this->customBreakSoundUrl = $snapshot['custom_break_sound_url'];
         $this->sessionId = $snapshot['session']?->id;
         $this->remainingSeconds = $snapshot['remaining_seconds'];
         $this->completedToday = $snapshot['completed_today'];

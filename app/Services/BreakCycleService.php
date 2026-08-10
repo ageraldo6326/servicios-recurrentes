@@ -249,6 +249,9 @@ final class BreakCycleService
             'custom_sound_url' => $settings->custom_sound_path === null
                 ? null
                 : url('storage/'.ltrim($settings->custom_sound_path, '/')),
+            'custom_break_sound_url' => $settings->custom_break_sound_path === null
+                ? null
+                : url('storage/'.ltrim($settings->custom_break_sound_path, '/')),
         ];
     }
 

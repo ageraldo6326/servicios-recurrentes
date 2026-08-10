@@ -1,6 +1,6 @@
 <div wire:poll.5s="tick"
-    x-data="{ target: @js($targetAt), remaining: @js($remainingSeconds), sessionId: @js($sessionId), customSoundUrl: @js($customSoundUrl), soundOnBreak: @js($soundOnBreak), soundOnReturn: @js($soundOnReturn), timer: null }"
-    x-init="window.breakCustomSoundUrl = customSoundUrl; timer = setInterval(() => { if (target) remaining = Math.max(0, Math.ceil((new Date(target).getTime() - Date.now()) / 1000)); }, 1000); window.armBreakTimer?.(target, @js($status), sessionId, @js($status === 'break_active' ? $soundOnReturn : $soundOnBreak)); $watch('$wire.targetAt', value => { target = value; sessionId = $wire.sessionId; window.armBreakTimer?.(value, $wire.status, sessionId, $wire.status === 'break_active' ? soundOnReturn : soundOnBreak); }); $watch('$wire.status', value => window.armBreakTimer?.(target, value, sessionId, value === 'break_active' ? soundOnReturn : soundOnBreak)); $watch('$wire.customSoundUrl', value => { customSoundUrl = value; window.breakCustomSoundUrl = value; })"
+    x-data="{ target: @js($targetAt), remaining: @js($remainingSeconds), sessionId: @js($sessionId), customSoundUrl: @js($customSoundUrl), customBreakSoundUrl: @js($customBreakSoundUrl), soundOnBreak: @js($soundOnBreak), soundOnReturn: @js($soundOnReturn), timer: null }"
+    x-init="window.breakCustomSoundUrl = customSoundUrl; window.breakCustomBreakSoundUrl = customBreakSoundUrl; timer = setInterval(() => { if (target) remaining = Math.max(0, Math.ceil((new Date(target).getTime() - Date.now()) / 1000)); }, 1000); window.armBreakTimer?.(target, @js($status), sessionId, @js($status === 'break_active' ? $soundOnReturn : $soundOnBreak)); $watch('$wire.targetAt', value => { target = value; sessionId = $wire.sessionId; window.armBreakTimer?.(value, $wire.status, sessionId, $wire.status === 'break_active' ? soundOnReturn : soundOnBreak); }); $watch('$wire.status', value => window.armBreakTimer?.(target, value, sessionId, value === 'break_active' ? soundOnReturn : soundOnBreak)); $watch('$wire.customSoundUrl', value => { customSoundUrl = value; window.breakCustomSoundUrl = value; }); $watch('$wire.customBreakSoundUrl', value => { customBreakSoundUrl = value; window.breakCustomBreakSoundUrl = value; })"
     x-on:break-cycle-alert.window="window.notifyBreakAlert?.(event.detail.kind, event.detail.token)"
     class="relative flex min-w-0 items-center">
     <div class="flex min-w-0 items-center gap-2">
@@ -97,6 +97,12 @@
         };
 
         window.playBreakStartAlarm = window.playBreakStartAlarm || function () {
+            if (window.breakCustomBreakSoundUrl) {
+                const customAudio = new Audio(window.breakCustomBreakSoundUrl);
+                customAudio.volume = 1;
+                customAudio.play().catch(() => {});
+                return;
+            }
             const context = window.breakAudioContext;
             if (!context || window.breakAlarmBusy) return;
             window.breakAlarmBusy = true;

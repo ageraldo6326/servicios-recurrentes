@@ -35,6 +35,10 @@ class Dashboard extends Component
 
     public ?string $customSoundUrl = null;
 
+    public $customBreakSound;
+
+    public ?string $customBreakSoundUrl = null;
+
     public ?int $editingExerciseId = null;
 
     public string $exerciseName = '';
@@ -66,10 +70,13 @@ class Dashboard extends Component
             'soundOnReturn' => ['boolean'],
             'visualAlert' => ['boolean'],
             'customSound' => ['nullable', 'file', 'mimes:mp3,wav,ogg,m4a', 'max:10240'],
+            'customBreakSound' => ['nullable', 'file', 'mimes:mp3,wav,ogg,m4a', 'max:10240'],
         ]);
 
         $customSoundPath = $this->customSound?->store('break-sounds/'.$this->userId(), 'public')
             ?? $this->currentSoundPath($cycle);
+        $customBreakSoundPath = $this->customBreakSound?->store('break-sounds/'.$this->userId(), 'public')
+            ?? $this->currentBreakSoundPath($cycle);
 
         $configure->execute(auth()->user(), [
             'is_enabled' => $validated['isEnabled'],
@@ -79,10 +86,13 @@ class Dashboard extends Component
             'sound_on_return' => $validated['soundOnReturn'],
             'visual_alert' => $validated['visualAlert'],
             'custom_sound_path' => $customSoundPath,
+            'custom_break_sound_path' => $customBreakSoundPath,
         ]);
 
         $this->customSound = null;
+        $this->customBreakSound = null;
         $this->customSoundUrl = $customSoundPath ? url('storage/'.ltrim($customSoundPath, '/')) : null;
+        $this->customBreakSoundUrl = $customBreakSoundPath ? url('storage/'.ltrim($customBreakSoundPath, '/')) : null;
         session()->flash('success', 'Configuración de pausas actualizada.');
     }
 
@@ -92,6 +102,14 @@ class Dashboard extends Component
         $this->customSound = null;
         $this->customSoundUrl = null;
         session()->flash('success', 'Sonido personalizado eliminado.');
+    }
+
+    public function clearCustomBreakSound(ConfigureBreakSettings $configure): void
+    {
+        $configure->execute(auth()->user(), ['custom_break_sound_path' => null]);
+        $this->customBreakSound = null;
+        $this->customBreakSoundUrl = null;
+        session()->flash('success', 'Sonido de pausa eliminado.');
     }
 
     public function saveExercise(CreateBreakExercise $create, UpdateBreakExercise $update): void
@@ -183,6 +201,7 @@ class Dashboard extends Component
             'workOptions' => [20, 30, 45, 60, 90],
             'breakOptions' => [2, 5, 10, 15],
             'customSoundUrl' => $this->customSoundUrl,
+            'customBreakSoundUrl' => $this->customBreakSoundUrl,
         ]);
     }
 
@@ -197,11 +216,19 @@ class Dashboard extends Component
         $this->customSoundUrl = $settings->custom_sound_path === null
             ? null
             : url('storage/'.ltrim($settings->custom_sound_path, '/'));
+        $this->customBreakSoundUrl = $settings->custom_break_sound_path === null
+            ? null
+            : url('storage/'.ltrim($settings->custom_break_sound_path, '/'));
     }
 
     private function currentSoundPath(BreakCycleService $cycle): ?string
     {
         return $cycle->settings(auth()->user())->custom_sound_path;
+    }
+
+    private function currentBreakSoundPath(BreakCycleService $cycle): ?string
+    {
+        return $cycle->settings(auth()->user())->custom_break_sound_path;
     }
 
     private function userId(): int
