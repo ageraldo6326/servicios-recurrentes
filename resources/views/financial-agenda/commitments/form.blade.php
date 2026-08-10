@@ -44,9 +44,15 @@
         </div>
         <label class="flex items-center gap-2 text-sm font-semibold text-ink">
             <input type="hidden" name="is_active" value="0">
-            <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $commitment->is_active))>
+            <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $commitment->is_active)) @disabled($commitment->cancelled_at !== null)>
             Compromiso activo
         </label>
+        @if($commitment->cancelled_at)
+            <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">
+                <p class="font-black">Compromiso cancelado el {{ $commitment->cancelled_at->format('d/m/Y') }}</p>
+                <p class="mt-1">{{ $commitment->cancellation_reason }}</p>
+            </div>
+        @endif
         <label class="block text-sm font-bold text-ink">Observaciones
             <textarea class="input min-h-28" name="observations">{{ old('observations', $commitment->observations) }}</textarea>
         </label>
@@ -55,4 +61,25 @@
             <a class="button-secondary" href="{{ route('financial-agenda.commitments.index') }}" wire:navigate>Cancelar</a>
         </div>
     </form>
+    @if($commitment->exists && $commitment->is_active)
+        <div class="panel mt-5 max-w-3xl border-red-200 dark:border-red-900" x-data="{ showCancel: false }">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm font-black text-red-700 dark:text-red-300">¿Ya no existe esta obligación?</p>
+                    <p class="mt-1 text-xs text-muted">Cancela el compromiso sin borrar sus pagos ni su historial.</p>
+                </div>
+                <button type="button" class="button-secondary border-red-300 text-red-700 dark:border-red-800 dark:text-red-300" x-on:click="showCancel = !showCancel">
+                    Cancelar compromiso
+                </button>
+            </div>
+            <form x-show="showCancel" x-cloak class="mt-4 space-y-3 border-t border-line pt-4" method="post" action="{{ route('financial-agenda.commitments.cancel', $commitment) }}" x-on:submit="return confirm('¿Confirmas la cancelación? Esta acción conserva el historial, pero detiene nuevas obligaciones.')">
+                @csrf
+                <label class="block text-sm font-bold text-ink">Razón de cancelación
+                    <textarea class="input min-h-24" name="cancellation_reason" required>{{ old('cancellation_reason') }}</textarea>
+                    @error('cancellation_reason')<span class="mt-1 block text-xs font-semibold text-red-600">{{ $message }}</span>@enderror
+                </label>
+                <button class="button bg-red-600 text-white hover:bg-red-700" type="submit">Confirmar cancelación</button>
+            </form>
+        </div>
+    @endif
 @endsection

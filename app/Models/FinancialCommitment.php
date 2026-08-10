@@ -22,6 +22,9 @@ class FinancialCommitment extends Model
         'cutoff_day',
         'due_day',
         'is_active',
+        'cancelled_at',
+        'cancelled_by_user_id',
+        'cancellation_reason',
         'observations',
     ];
 
@@ -30,6 +33,7 @@ class FinancialCommitment extends Model
         'suggested_amount' => 'decimal:2',
         'has_cutoff' => 'boolean',
         'is_active' => 'boolean',
+        'cancelled_at' => 'date',
     ];
 
     public function beneficiary(): BelongsTo
@@ -40,5 +44,10 @@ class FinancialCommitment extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(CommitmentPayment::class);
+    }
+
+    public function cancelledBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cancelled_by_user_id');
     }
 }

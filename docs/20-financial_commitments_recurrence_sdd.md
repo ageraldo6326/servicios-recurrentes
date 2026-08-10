@@ -1150,3 +1150,80 @@ No realizar cambios fuera del alcance del módulo.
 
 > **La agenda debe mostrar las próximas obligaciones con suficiente
 > anticipación para permitir planificación financiera.**
+
+------------------------------------------------------------------------
+
+# 29. Cancelación de un compromiso recurrente
+
+Cancelar una tarjeta, préstamo o suscripción es una acción explícita y
+distinta de editar el compromiso.
+
+## 29.1 Reglas
+
+Al cancelar un compromiso:
+
+1. El compromiso se marca como inactivo.
+2. Se registra la fecha de cancelación.
+3. Se registra la razón obligatoria.
+4. Se registra el usuario que realizó la cancelación.
+5. No se elimina el compromiso.
+6. No se eliminan pagos ni obligaciones históricas.
+7. Las obligaciones futuras pendientes o parcialmente pagadas se marcan
+   como `cancelled`.
+8. Las obligaciones ya pagadas permanecen como `paid`.
+9. Las obligaciones vencidas anteriores se conservan como historial.
+10. No se generan nuevas ocurrencias después de la cancelación.
+
+La cancelación no debe reutilizarse para corregir un pago. Si el usuario
+registró un pago incorrecto, debe existir un flujo separado para corregir
+ese movimiento sin alterar la historia del compromiso.
+
+## 29.2 Datos persistidos
+
+La tabla `financial_commitments` conserva el compromiso y agrega:
+
+``` text
+is_active
+cancelled_at
+cancelled_by_user_id
+cancellation_reason
+```
+
+Las obligaciones futuras se conservan en `commitment_payments` con el
+estado `cancelled`; ningún registro se borra.
+
+## 29.3 Flujo de usuario
+
+Desde la edición del compromiso el usuario selecciona **Cancelar
+compromiso**, escribe una razón y confirma la acción.
+
+Ejemplos de razones:
+
+- Préstamo liquidado.
+- Tarjeta cancelada con el banco.
+- Servicio sustituido por otro proveedor.
+- Suscripción ya no utilizada.
+
+La acción requiere autenticación y autorización de cancelación. Una vez
+cancelado, el compromiso no puede reactivarse editando el checkbox de
+activo; si vuelve a contratarse, debe crearse un compromiso nuevo.
+
+## 29.4 Criterios de aceptación
+
+``` text
+Compromiso: BHD Platinum
+Cancelar: 20/08/2026
+Razón: Tarjeta cancelada con el banco
+
+Resultado:
+  Compromiso: inactivo
+  Fecha de cancelación: 20/08/2026
+  Razón: conservada
+  Agosto pagado: permanece pagado
+  Septiembre pendiente: pasa a cancelado
+  Nuevas ocurrencias: no se generan
+  Historial: permanece disponible
+```
+
+La cancelación debe ser idempotente desde la interfaz: un compromiso ya
+cancelado no debe ofrecer nuevamente la acción de cancelación.

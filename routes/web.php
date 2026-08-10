@@ -95,6 +95,7 @@ Route::middleware(['auth'])->group(function (): void {
         Route::get('beneficiaries', BeneficiariesIndex::class)->name('beneficiaries.index');
         Route::resource('beneficiaries', BeneficiaryController::class)->except(['index', 'show', 'destroy']);
         Route::get('commitments', CommitmentsIndex::class)->name('commitments.index');
+        Route::post('commitments/{commitment}/cancel', [FinancialCommitmentController::class, 'cancel'])->name('commitments.cancel');
         Route::resource('commitments', FinancialCommitmentController::class)->except(['index', 'show', 'destroy']);
     });
 });

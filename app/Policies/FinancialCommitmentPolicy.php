@@ -21,4 +21,9 @@ class FinancialCommitmentPolicy
     {
         return true;
     }
+
+    public function cancel(User $user, FinancialCommitment $financialCommitment): bool
+    {
+        return $financialCommitment->is_active && $financialCommitment->cancelled_at === null;
+    }
 }
