@@ -38,7 +38,7 @@
             <section class="pointer-events-auto w-full overflow-hidden rounded-2xl border border-amber-200 bg-surface p-4 shadow-2xl dark:border-amber-800 sm:p-5" role="alert" aria-live="assertive">
                 <div class="flex items-start gap-3"><div class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-100 text-xl dark:bg-amber-950/60">🔔</div><div class="min-w-0"><p class="text-xs font-black uppercase tracking-[0.18em] text-amber-700 dark:text-amber-300">Hora de descansar</p><h2 class="mt-1 text-xl font-black text-ink">Toma una pausa activa</h2><p class="mt-2 text-sm text-muted">Has trabajado durante {{ $workMinutes }} minutos. Tu pausa durará {{ $breakMinutes }} minutos.</p></div></div>
                 @if ($exerciseName)<div class="mt-4 rounded-xl bg-surface-soft p-3"><p class="text-xs font-bold uppercase tracking-wider text-brand">Ejercicio sugerido</p><p class="mt-1 font-black text-ink">{{ $exerciseName }}</p><p class="mt-1 text-sm text-muted">{{ $exerciseDescription }}</p></div>@endif
-                <div class="mt-4 grid grid-cols-2 gap-2"><button type="button" x-on:click="window.enableBreakAudio?.()" wire:click="takeBreak" class="button min-h-11 w-full whitespace-nowrap px-2 text-xs sm:text-sm">▶ Tomar pausa</button><button type="button" wire:click="cancelBreak" class="button-secondary min-h-11 w-full whitespace-nowrap px-2 text-xs sm:text-sm">Omitir</button></div>
+                <div class="mt-4 grid grid-cols-2 gap-2"><button type="button" x-on:click="window.enableBreakAudio?.(false); if (soundOnBreak) window.playBreakStartAlarm?.()" wire:click="takeBreak" class="button min-h-11 w-full whitespace-nowrap px-2 text-xs sm:text-sm">▶ Tomar pausa</button><button type="button" wire:click="cancelBreak" class="button-secondary min-h-11 w-full whitespace-nowrap px-2 text-xs sm:text-sm">Omitir</button></div>
             </section>
         </div>
     @elseif ($status === 'break_active' && $enabled)
@@ -96,13 +96,39 @@
             window.setTimeout(() => { window.breakAlarmBusy = false; }, 1100);
         };
 
-        window.enableBreakAudio = window.enableBreakAudio || function () {
+        window.playBreakStartAlarm = window.playBreakStartAlarm || function () {
+            const context = window.breakAudioContext;
+            if (!context || window.breakAlarmBusy) return;
+            window.breakAlarmBusy = true;
+            const now = context.currentTime;
+            const master = context.createGain();
+            master.gain.setValueAtTime(0.0001, now);
+            master.gain.exponentialRampToValueAtTime(0.32, now + 0.08);
+            master.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
+            master.connect(context.destination);
+            [659.25, 783.99, 1046.5].forEach((frequency, index) => {
+                const oscillator = context.createOscillator();
+                const note = context.createGain();
+                const start = now + index * 0.18;
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(frequency, start);
+                note.gain.setValueAtTime(0.0001, start);
+                note.gain.exponentialRampToValueAtTime(0.55, start + 0.03);
+                note.gain.exponentialRampToValueAtTime(0.0001, start + 0.38);
+                oscillator.connect(note).connect(master);
+                oscillator.start(start);
+                oscillator.stop(start + 0.4);
+            });
+            window.setTimeout(() => { window.breakAlarmBusy = false; }, 1300);
+        };
+
+        window.enableBreakAudio = window.enableBreakAudio || function (playSound = true) {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             if (!AudioContext) return;
             window.breakAudioContext = window.breakAudioContext || new AudioContext();
             window.breakAudioContext.resume();
             if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => {});
-            window.playBreakAlarm();
+            if (playSound) window.playBreakAlarm();
         };
 
         window.notifyBreakAlert = window.notifyBreakAlert || function (kind, token) {
@@ -114,7 +140,9 @@
             localStorage.setItem(key, '1');
             window.breakAlertChannel?.postMessage({ key });
             const isReturn = kind.includes('finished');
-            if (!kind.endsWith('visual')) window.playBreakAlarm?.();
+            if (!kind.endsWith('visual')) {
+                isReturn ? window.playBreakAlarm?.() : window.playBreakStartAlarm?.();
+            }
             if ('Notification' in window && Notification.permission === 'granted') {
                 const notification = new Notification(isReturn ? '🔔 Hora de volver al trabajo' : '📯 Hora de hacer una pausa', { body: isReturn ? 'Tu pausa terminó. Confirma para comenzar a trabajar.' : 'Tu período de trabajo terminó. Toma una pausa activa.', tag: key, requireInteraction: true });
                 notification.onclick = () => { window.focus(); notification.close(); };
