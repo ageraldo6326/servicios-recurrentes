@@ -7,6 +7,12 @@
       "skillPath": "alpine-js/SKILL.md",
       "computedHash": "12155a49ae5c0f68a548945bbca49f5cef365118de9913442c86da6171ce4ce5"
     },
+    "figma": {
+      "source": "heygen-com/hyperframes",
+      "sourceType": "github",
+      "skillPath": "skills/figma/SKILL.md",
+      "computedHash": "85a38b7553ad006b2609b6215d57f9888670027c5a912cd028bb49d75ce40914"
+    },
     "laravel-specialist": {
       "source": "jeffallan/claude-skills",
       "sourceType": "github",

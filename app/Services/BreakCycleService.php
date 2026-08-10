@@ -157,6 +157,25 @@ final class BreakCycleService
         return $session->refresh();
     }
 
+    public function cancelActiveBreak(User $user): BreakSession
+    {
+        $session = $this->current($user);
+        abort_unless($session?->status === BreakCycleStatus::BreakActive, 422, 'No hay una pausa activa.');
+
+        $now = CarbonImmutable::now();
+        $session->fill([
+            'cancelled_at' => $now,
+            'ended_at' => $now,
+            'actual_duration_seconds' => $session->started_at?->diffInSeconds($now),
+            'status' => BreakCycleStatus::BreakCancelled,
+            'updated_by' => $user->id,
+        ]);
+        $session->save();
+        $this->record($session, $user, 'break_cancelled');
+
+        return $session->refresh();
+    }
+
     public function pauseWork(User $user): BreakSession
     {
         $session = $this->current($user);
@@ -227,6 +246,9 @@ final class BreakCycleService
             'completed_today' => $completedToday,
             'cancelled_today' => $cancelledToday,
             'rest_seconds_today' => $restSecondsToday,
+            'custom_sound_url' => $settings->custom_sound_path === null
+                ? null
+                : url('storage/'.ltrim($settings->custom_sound_path, '/')),
         ];
     }
 

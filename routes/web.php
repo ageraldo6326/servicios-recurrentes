@@ -28,6 +28,7 @@ use App\Livewire\Gestiones\Index as GestionesIndex;
 use App\Livewire\Providers\Index as ProvidersIndex;
 use App\Livewire\UnplannedExpenses\Dashboard as UnplannedExpensesDashboard;
 use App\Livewire\Breaks\Dashboard as BreaksDashboard;
+use App\Livewire\Tasks\Index as TasksIndex;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome');
@@ -54,6 +55,7 @@ Route::middleware(['auth'])->group(function (): void {
     Route::post('payments/{payment}/validate', [PaymentController::class, 'validatePayment'])->name('payments.validate');
     Route::get('gestions', GestionesIndex::class)->name('gestions.index');
     Route::get('descansos', BreaksDashboard::class)->name('breaks.dashboard');
+    Route::get('agenda', TasksIndex::class)->name('tasks.index');
     Route::resource('gestions', GestionController::class)->only(['create', 'store']);
     Route::resource('provider-invoices', ProviderInvoiceController::class)->only(['index', 'create', 'store']);
     Route::post('logout', function (Logout $logout) {

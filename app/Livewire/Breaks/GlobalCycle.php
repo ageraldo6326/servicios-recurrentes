@@ -14,6 +14,10 @@ class GlobalCycle extends Component
 
     public ?string $targetAt = null;
 
+    public ?string $customSoundUrl = null;
+
+    public ?int $sessionId = null;
+
     public int $remainingSeconds = 0;
 
     public int $completedToday = 0;
@@ -77,6 +81,12 @@ class GlobalCycle extends Component
         $this->tick();
     }
 
+    public function cancelActiveBreak(): void
+    {
+        app(BreakCycleService::class)->cancelActiveBreak(auth()->user());
+        $this->tick();
+    }
+
     public function pauseWork(): void
     {
         app(BreakCycleService::class)->pauseWork(auth()->user());
@@ -100,6 +110,8 @@ class GlobalCycle extends Component
         $this->status = $snapshot['status'];
         $this->statusLabel = $snapshot['status_label'];
         $this->targetAt = $snapshot['target_at'];
+        $this->customSoundUrl = $snapshot['custom_sound_url'];
+        $this->sessionId = $snapshot['session']?->id;
         $this->remainingSeconds = $snapshot['remaining_seconds'];
         $this->completedToday = $snapshot['completed_today'];
         $this->cancelledToday = $snapshot['cancelled_today'];

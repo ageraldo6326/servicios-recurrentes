@@ -52,6 +52,9 @@
                 <a wire:navigate href="{{ route('gestions.index') }}"
                     class="sidebar-link {{ request()->routeIs('gestions.*') ? 'active' : '' }}"><span
                         class="text-lg">✦</span> Gestiones</a>
+                <a wire:navigate href="{{ route('tasks.index') }}"
+                    class="sidebar-link {{ request()->routeIs('tasks.*') ? 'active' : '' }}"><span
+                        class="text-lg">✓</span> Agenda</a>
                 <a wire:navigate href="{{ route('dashboard.executive') }}"
                     class="sidebar-link {{ request()->routeIs('dashboard.executive') ? 'active' : '' }}"><span
                         class="text-lg">◒</span> Proyección financiera</a>
@@ -90,13 +93,15 @@
             <div class="hidden" aria-hidden="true">
                 <livewire:layout.navigation />
             </div>
-            <header class="sticky top-0 z-20 border-b border-line bg-surface/90 backdrop-blur">
+            <header class="relative sticky top-0 z-20 border-b border-line bg-surface/90 backdrop-blur">
                 <div class="flex h-16 items-center gap-3 px-4 sm:px-6 lg:px-8">
                     <button @click="menu = !menu"
                         class="grid h-10 w-10 place-items-center rounded-xl border border-line text-xl lg:hidden"
                         aria-label="Abrir menú">☰</button>
                     @auth
-                        <livewire:breaks.global-cycle />
+                        <div class="min-w-0 flex-1">
+                            <livewire:breaks.global-cycle />
+                        </div>
                     @endauth
                     <div class="ml-auto flex items-center gap-2">
                         <button type="button" x-on:click="$dispatch('business-coach-analyze')" wire:loading.attr="disabled"
