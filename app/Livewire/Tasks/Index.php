@@ -8,6 +8,7 @@ use App\Models\Task;
 use App\Services\TaskAgendaService;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
@@ -148,6 +149,22 @@ class Index extends Component
         $this->ownedTask($id)->update(['status' => TaskStatus::Cancelled]);
     }
 
+    public function changeStatus(int $id, string $status): void
+    {
+        $task = $this->ownedTask($id);
+        $newStatus = TaskStatus::tryFrom($status);
+
+        if ($newStatus === null) {
+            return;
+        }
+
+        $task->update([
+            'status' => $newStatus,
+            'completed_at' => $newStatus === TaskStatus::Completed ? now() : null,
+            'completed_by' => $newStatus === TaskStatus::Completed ? auth()->id() : null,
+        ]);
+    }
+
     public function delete(int $id): void
     {
         $this->ownedTask($id)->delete();
@@ -164,15 +181,27 @@ class Index extends Component
         $cursor = CarbonImmutable::parse($this->cursor, config('app.timezone'))->startOfDay();
         $today = CarbonImmutable::now(config('app.timezone'))->startOfDay();
         [$from, $to] = $this->range($cursor);
-        $query = Task::query()->where('user_id', auth()->id())->when($this->filter !== 'overdue', fn ($q) => $q->whereBetween('due_date', [$from->toDateString(), $to->toDateString()]))->when($this->search !== '', fn ($q) => $q->where(fn ($q) => $q->where('title', 'like', '%'.$this->search.'%')->orWhere('description', 'like', '%'.$this->search.'%')->orWhere('notes', 'like', '%'.$this->search.'%')->orWhere('category', 'like', '%'.$this->search.'%')))->when($this->category !== '', fn ($q) => $q->where('category', $this->category))->when($this->filter === 'active', fn ($q) => $q->whereIn('status', [TaskStatus::Pending->value, TaskStatus::InProgress->value]))->when($this->filter === 'completed', fn ($q) => $q->where('status', TaskStatus::Completed))->when($this->filter === 'overdue', fn ($q) => $q->whereIn('status', [TaskStatus::Pending->value, TaskStatus::InProgress->value])->whereDate('due_date', '<', $today))->when($this->filter === 'today', fn ($q) => $q->whereDate('due_date', $today))->when($this->priorityFilter !== 'all', fn ($q) => $q->where('priority', $this->priorityFilter));
-        $tasks = $query->orderBy('due_date')->orderByRaw('scheduled_time IS NULL, scheduled_time')->get();
+        $calendarTasks = $this->taskQuery($today)->whereBetween('due_date', [$from->toDateString(), $to->toDateString()])->orderBy('due_date')->orderByRaw('scheduled_time IS NULL, scheduled_time')->get();
+        $filteredTasks = $this->taskQuery($today)->orderBy('due_date')->orderByRaw('scheduled_time IS NULL, scheduled_time')->get();
         $all = Task::query()->where('user_id', auth()->id());
         $active = fn ($q) => $q->whereIn('status', [TaskStatus::Pending->value, TaskStatus::InProgress->value]);
         $stats = ['today' => (clone $all)->whereDate('due_date', $today)->where($active)->count(), 'pending' => (clone $all)->where($active)->count(), 'overdue' => (clone $all)->where($active)->whereDate('due_date', '<', $today)->count(), 'completed' => (clone $all)->where('status', TaskStatus::Completed)->count()];
         $dayTasks = Task::query()->where('user_id', auth()->id())->whereDate('due_date', $this->selected)->orderByRaw('scheduled_time IS NULL, scheduled_time')->get();
         $overdueTasks = Task::query()->where('user_id', auth()->id())->whereIn('status', [TaskStatus::Pending->value, TaskStatus::InProgress->value])->whereDate('due_date', '<', $today)->orderBy('due_date')->limit(4)->get();
 
-        return view('livewire.tasks.index', ['tasks' => $tasks, 'dayTasks' => $dayTasks, 'overdueTasks' => $overdueTasks, 'days' => $agenda->calendarDays($from, $to), 'stats' => $stats, 'today' => $today, 'cursorDate' => $cursor, 'categories' => Task::query()->where('user_id', auth()->id())->whereNotNull('category')->distinct()->orderBy('category')->pluck('category')]);
+        return view('livewire.tasks.index', ['tasks' => $calendarTasks, 'filteredTasks' => $filteredTasks, 'dayTasks' => $dayTasks, 'overdueTasks' => $overdueTasks, 'days' => $agenda->calendarDays($from, $to), 'stats' => $stats, 'today' => $today, 'cursorDate' => $cursor, 'categories' => Task::query()->where('user_id', auth()->id())->whereNotNull('category')->distinct()->orderBy('category')->pluck('category')]);
+    }
+
+    private function taskQuery(CarbonImmutable $today): Builder
+    {
+        return Task::query()->where('user_id', auth()->id())
+            ->when($this->search !== '', fn (Builder $q) => $q->where(fn (Builder $q) => $q->where('title', 'like', '%'.$this->search.'%')->orWhere('description', 'like', '%'.$this->search.'%')->orWhere('notes', 'like', '%'.$this->search.'%')->orWhere('category', 'like', '%'.$this->search.'%')))
+            ->when($this->category !== '', fn (Builder $q) => $q->where('category', $this->category))
+            ->when($this->filter === 'active', fn (Builder $q) => $q->whereIn('status', [TaskStatus::Pending->value, TaskStatus::InProgress->value]))
+            ->when($this->filter === 'completed', fn (Builder $q) => $q->where('status', TaskStatus::Completed))
+            ->when($this->filter === 'overdue', fn (Builder $q) => $q->whereIn('status', [TaskStatus::Pending->value, TaskStatus::InProgress->value])->whereDate('due_date', '<', $today))
+            ->when($this->filter === 'today', fn (Builder $q) => $q->whereDate('due_date', $today))
+            ->when($this->priorityFilter !== 'all', fn (Builder $q) => $q->where('priority', $this->priorityFilter));
     }
 
     private function move(int $direction): void
