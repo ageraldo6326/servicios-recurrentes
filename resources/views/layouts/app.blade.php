@@ -109,10 +109,96 @@
                             class="button-secondary" aria-label="Analizar pantalla">
                             <span class="mr-2">🧠</span> Analizar
                         </button>
-                        <div x-data="{ now: new Date() }" x-init="setInterval(() => now = new Date(), 1000)"
-                            class="inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-surface px-3 text-sm font-bold tabular-nums text-ink"
-                            aria-live="polite" aria-label="Hora actual"><span class="text-base text-brand">◷</span><span
-                                x-text="now.toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })"></span>
+                        <div x-data="{
+                                now: new Date(),
+                                open: false,
+                                monthDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+                                selectedDate: new Date(),
+                                get monthLabel() {
+                                    return this.monthDate.toLocaleDateString('es-DO', { month: 'long', year: 'numeric' });
+                                },
+                                get selectedLabel() {
+                                    return this.selectedDate.toLocaleDateString('es-DO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                                },
+                                get days() {
+                                    const firstDay = new Date(this.monthDate.getFullYear(), this.monthDate.getMonth(), 1);
+                                    const offset = (firstDay.getDay() + 6) % 7;
+                                    const totalDays = new Date(this.monthDate.getFullYear(), this.monthDate.getMonth() + 1, 0).getDate();
+                                    const days = Array(offset).fill(null);
+                                    for (let day = 1; day <= totalDays; day++) days.push(new Date(this.monthDate.getFullYear(), this.monthDate.getMonth(), day));
+                                    return days;
+                                },
+                                isToday(day) {
+                                    return day && day.toDateString() === new Date().toDateString();
+                                },
+                                isSelected(day) {
+                                    return day && day.toDateString() === this.selectedDate.toDateString();
+                                },
+                                previousMonth() {
+                                    this.monthDate = new Date(this.monthDate.getFullYear(), this.monthDate.getMonth() - 1, 1);
+                                },
+                                nextMonth() {
+                                    this.monthDate = new Date(this.monthDate.getFullYear(), this.monthDate.getMonth() + 1, 1);
+                                },
+                                chooseDay(day) {
+                                    if (day) this.selectedDate = day;
+                                },
+                                goToday() {
+                                    this.selectedDate = new Date();
+                                    this.monthDate = new Date(this.selectedDate.getFullYear(), this.selectedDate.getMonth(), 1);
+                                }
+                            }"
+                            x-init="setInterval(() => now = new Date(), 1000)"
+                            @click.outside="open = false"
+                            @keydown.escape.window="open = false"
+                            class="relative">
+                            <button type="button" @click="open = !open"
+                                class="inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-surface px-3 text-sm font-bold tabular-nums text-ink transition hover:border-brand hover:text-brand"
+                                aria-live="polite" aria-label="Abrir calendario y ver la hora actual"
+                                :aria-expanded="open">
+                                <span class="text-base text-brand">◷</span>
+                                <span x-text="now.toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })"></span>
+                            </button>
+
+                            <div x-cloak x-show="open" x-transition style="display: none"
+                                class="absolute right-0 top-full z-[70] mt-3 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-line bg-surface p-4 shadow-2xl"
+                                role="dialog" aria-label="Calendario">
+                                <div class="flex items-center justify-between gap-3">
+                                    <div>
+                                        <p class="text-xs font-black uppercase tracking-[0.16em] text-brand">Calendario</p>
+                                        <p class="mt-1 text-sm font-bold capitalize text-ink" x-text="selectedLabel"></p>
+                                    </div>
+                                    <button type="button" @click="open = false"
+                                        class="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-line text-lg text-muted transition hover:border-brand hover:text-brand"
+                                        aria-label="Cerrar calendario">×</button>
+                                </div>
+
+                                <div class="mt-4 flex items-center justify-between">
+                                    <button type="button" @click="previousMonth"
+                                        class="grid h-9 w-9 place-items-center rounded-lg border border-line text-lg text-ink transition hover:border-brand hover:text-brand"
+                                        aria-label="Mes anterior">‹</button>
+                                    <p class="text-base font-black capitalize text-ink" x-text="monthLabel"></p>
+                                    <button type="button" @click="nextMonth"
+                                        class="grid h-9 w-9 place-items-center rounded-lg border border-line text-lg text-ink transition hover:border-brand hover:text-brand"
+                                        aria-label="Mes siguiente">›</button>
+                                </div>
+
+                                <div class="mt-4 grid grid-cols-7 gap-1 text-center">
+                                    <template x-for="(weekday, index) in ['L','M','M','J','V','S','D']" :key="index">
+                                        <span class="py-1 text-[10px] font-black uppercase tracking-wider text-muted" x-text="weekday"></span>
+                                    </template>
+                                    <template x-for="(day, index) in days" :key="index">
+                                        <button type="button" @click="chooseDay(day)" :disabled="!day"
+                                            class="grid aspect-square place-items-center rounded-lg text-sm font-bold transition"
+                                            :class="!day ? 'cursor-default' : (isSelected(day) ? 'bg-brand text-white' : (isToday(day) ? 'border border-brand text-brand hover:bg-brand/10' : 'text-ink hover:bg-surface-soft'))"
+                                            :aria-label="day ? day.toLocaleDateString('es-DO', { day: 'numeric', month: 'long', year: 'numeric' }) : null"
+                                            x-text="day ? day.getDate() : ''"></button>
+                                    </template>
+                                </div>
+
+                                <button type="button" @click="goToday"
+                                    class="button-secondary mt-4 w-full text-xs">Ir a hoy</button>
+                            </div>
                         </div>
                         <button @click="dark = !dark; localStorage.setItem('theme', dark ? 'dark' : 'light')"
                             class="grid h-10 w-10 place-items-center rounded-xl border border-line text-lg"
