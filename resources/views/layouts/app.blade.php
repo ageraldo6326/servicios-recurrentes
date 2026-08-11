@@ -102,6 +102,7 @@
                         <div class="min-w-0 flex-1">
                             <livewire:breaks.global-cycle />
                         </div>
+                        <livewire:tasks.global-reminder />
                     @endauth
                     <div class="ml-auto flex items-center gap-2">
                         <button type="button" x-on:click="$dispatch('business-coach-analyze')" wire:loading.attr="disabled"
