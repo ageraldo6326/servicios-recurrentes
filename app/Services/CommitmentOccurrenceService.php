@@ -28,7 +28,8 @@ class CommitmentOccurrenceService
             $dates = $this->datesForPeriod($commitment, $month);
             $isDueToExist = ! $commitment->has_cutoff
                 || $dates['cutoff_date'] === null
-                || $dates['cutoff_date']->lessThanOrEqualTo($today);
+                || $dates['cutoff_date']->lessThanOrEqualTo($today)
+                || $dates['trigger_date']->lessThanOrEqualTo($today);
 
             if ($isDueToExist) {
                 $existing = CommitmentPayment::query()
@@ -56,18 +57,24 @@ class CommitmentOccurrenceService
             ->get();
     }
 
-    /** @return array{cutoff_date: ?CarbonImmutable, due_date: CarbonImmutable} */
+    /** @return array{cutoff_date: ?CarbonImmutable, trigger_date: CarbonImmutable, due_date: CarbonImmutable} */
     public function datesForPeriod(FinancialCommitment $commitment, CarbonImmutable $periodStart): array
     {
         $cutoffMonth = $commitment->has_cutoff && $commitment->cutoff_day > $commitment->due_day
             ? $periodStart->subMonthNoOverflow()
             : $periodStart;
 
+        $dueDate = $this->dateForDay($periodStart, $commitment->due_day);
+        $triggerDate = $commitment->has_cutoff && $commitment->cutoff_day !== null
+            ? $this->dateForDay($cutoffMonth, $commitment->cutoff_day)
+            : $dueDate->subDays($commitment->activation_days_before_due ?? 15);
+
         return [
             'cutoff_date' => $commitment->has_cutoff
                 ? $this->dateForDay($cutoffMonth, $commitment->cutoff_day)
                 : null,
-            'due_date' => $this->dateForDay($periodStart, $commitment->due_day),
+            'trigger_date' => $triggerDate,
+            'due_date' => $dueDate,
         ];
     }
 

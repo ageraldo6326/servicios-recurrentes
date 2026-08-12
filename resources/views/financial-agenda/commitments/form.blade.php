@@ -31,6 +31,10 @@
             <label class="block text-sm font-bold text-ink">Día límite de pago
                 <input class="input" type="number" name="due_day" min="1" max="31" value="{{ old('due_day', $commitment->due_day) }}" required>
             </label>
+            <label class="block text-sm font-bold text-ink">Días de anticipación
+                <input class="input" type="number" name="activation_days_before_due" min="0" max="365" value="{{ old('activation_days_before_due', $commitment->activation_days_before_due ?? 15) }}">
+                <span class="mt-1 block text-xs font-normal text-muted">Se usa para activar compromisos sin fecha de corte.</span>
+            </label>
         </div>
         <div class="rounded-xl border border-line bg-surface-soft p-4">
             <label class="flex items-center gap-2 text-sm font-bold text-ink">

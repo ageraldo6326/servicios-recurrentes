@@ -50,6 +50,7 @@ class FinancialCommitmentAgendaService
      *     occurrence: CommitmentPayment,
      *     period_start: CarbonImmutable,
      *     cutoff_date: ?CarbonImmutable,
+     *     trigger_date: CarbonImmutable,
      *     due_date: CarbonImmutable,
      *     cutoff_days: ?int,
      *     due_days: ?int,
@@ -76,6 +77,8 @@ class FinancialCommitmentAgendaService
             ?? $this->occurrenceService->datesForPeriod($commitment, $periodStart)['cutoff_date'];
         $dueDate = $occurrence->due_date
             ?? $this->occurrenceService->datesForPeriod($commitment, $periodStart)['due_date'];
+        $triggerDate = $cutoffDate
+            ?? CarbonImmutable::instance($dueDate)->subDays($commitment->activation_days_before_due ?? 15);
         $expectedAmount = $occurrence->expected_amount !== null
             ? (float) $occurrence->expected_amount
             : ($commitment->suggested_amount === null ? null : (float) $commitment->suggested_amount);
@@ -85,11 +88,16 @@ class FinancialCommitmentAgendaService
             || ($expectedAmount !== null && $amountPaid >= $expectedAmount);
         $isPartiallyPaid = ! $isPaid && $amountPaid > 0 && $expectedAmount !== null && $amountPaid < $expectedAmount;
         $isOverdue = ! $isPaid && $occurrence->status !== CommitmentPaymentStatus::Cancelled && $dueDate->lt($today);
+        $isProjected = ! $isPaid
+            && ! $isOverdue
+            && $occurrence->status !== CommitmentPaymentStatus::Cancelled
+            && $today->lt($triggerDate);
         $status = match (true) {
             $occurrence->status === CommitmentPaymentStatus::Cancelled => CommitmentPaymentStatus::Cancelled,
             $isPaid => CommitmentPaymentStatus::Paid,
-            $isPartiallyPaid => CommitmentPaymentStatus::PartiallyPaid,
             $isOverdue => CommitmentPaymentStatus::Overdue,
+            $isProjected => CommitmentPaymentStatus::Projected,
+            $isPartiallyPaid => CommitmentPaymentStatus::PartiallyPaid,
             default => CommitmentPaymentStatus::Pending,
         };
         $dueDays = $isPaid || $status === CommitmentPaymentStatus::Cancelled
@@ -108,6 +116,7 @@ class FinancialCommitmentAgendaService
             'occurrence' => $occurrence,
             'period_start' => $periodStart,
             'cutoff_date' => $cutoffDate,
+            'trigger_date' => $triggerDate,
             'due_date' => $dueDate,
             'cutoff_days' => $cutoffDays,
             'due_days' => $dueDays,

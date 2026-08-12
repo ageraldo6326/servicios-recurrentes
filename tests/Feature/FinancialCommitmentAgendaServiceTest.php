@@ -104,6 +104,73 @@ class FinancialCommitmentAgendaServiceTest extends TestCase
         $this->assertNull($agenda['reminder']);
     }
 
+    public function test_a_commitment_with_cutoff_is_projected_before_the_cutoff(): void
+    {
+        $commitment = $this->commitment(10, 15);
+        $occurrence = CommitmentPayment::query()->create([
+            'financial_commitment_id' => $commitment->id,
+            'period_start' => '2026-09-01',
+            'cutoff_date' => '2026-08-15',
+            'due_date' => '2026-09-10',
+            'expected_amount' => 7000,
+            'status' => CommitmentPaymentStatus::Pending,
+        ]);
+
+        $agenda = app(FinancialCommitmentAgendaService::class)->forOccurrence(
+            $occurrence->load(['financialCommitment', 'entries']),
+            CarbonImmutable::parse('2026-08-11'),
+        );
+
+        $this->assertSame(CommitmentPaymentStatus::Projected, $agenda['status']);
+        $this->assertSame('2026-08-15', $agenda['trigger_date']->toDateString());
+    }
+
+    public function test_a_commitment_without_cutoff_uses_fifteen_activation_days_by_default(): void
+    {
+        $commitment = $this->commitment(30, null);
+        $occurrence = CommitmentPayment::query()->create([
+            'financial_commitment_id' => $commitment->id,
+            'period_start' => '2026-08-01',
+            'due_date' => '2026-08-30',
+            'expected_amount' => 23000,
+            'status' => CommitmentPaymentStatus::Pending,
+        ]);
+
+        $beforeTrigger = app(FinancialCommitmentAgendaService::class)->forOccurrence(
+            $occurrence->load(['financialCommitment', 'entries']),
+            CarbonImmutable::parse('2026-08-14'),
+        );
+        $onTrigger = app(FinancialCommitmentAgendaService::class)->forOccurrence(
+            $occurrence->fresh(['financialCommitment', 'entries']),
+            CarbonImmutable::parse('2026-08-15'),
+        );
+
+        $this->assertSame(CommitmentPaymentStatus::Projected, $beforeTrigger['status']);
+        $this->assertSame(CommitmentPaymentStatus::Pending, $onTrigger['status']);
+        $this->assertSame('2026-08-15', $onTrigger['trigger_date']->toDateString());
+    }
+
+    public function test_a_partial_payment_keeps_its_balance_and_becomes_overdue_after_due_date(): void
+    {
+        $commitment = $this->commitment(10, null);
+        $occurrence = CommitmentPayment::query()->create([
+            'financial_commitment_id' => $commitment->id,
+            'period_start' => '2026-08-01',
+            'due_date' => '2026-08-10',
+            'expected_amount' => 12000,
+            'status' => CommitmentPaymentStatus::PartiallyPaid,
+            'amount_paid' => 5000,
+        ]);
+
+        $agenda = app(FinancialCommitmentAgendaService::class)->forOccurrence(
+            $occurrence->load(['financialCommitment', 'entries']),
+            CarbonImmutable::parse('2026-08-11'),
+        );
+
+        $this->assertSame(CommitmentPaymentStatus::Overdue, $agenda['status']);
+        $this->assertSame(7000.0, $agenda['balance']);
+    }
+
     private function commitment(int $dueDay, ?int $cutoffDay): FinancialCommitment
     {
         $beneficiary = Beneficiary::query()->create([

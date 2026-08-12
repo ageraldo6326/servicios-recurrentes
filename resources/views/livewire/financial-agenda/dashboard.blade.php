@@ -68,6 +68,7 @@
             </select>
             <select wire:model.live="status" class="input mt-0">
                 <option value="all">Todos los estados</option>
+                <option value="projected">Proyectados</option>
                 <option value="pending">Pendientes</option>
                 <option value="paid">Pagados</option>
                 <option value="overdue">Vencidos</option>
@@ -129,15 +130,22 @@
                         @if ($agenda['is_paid'])
                             @php($trafficClass = 'bg-brand ring-brand/30 dark:ring-brand/50')
                         @endif
-                        @php(
-    $dueClass = $agenda['is_paid']
-        ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300'
-        : match (true) {
-            $agenda['due_days'] <= 5 => 'border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300',
-            $agenda['due_days'] <= 10 => 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300',
-            default => 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300'
-        }
-)
+                        @php($statusLabel = match ($agenda['status']->value) {
+                            'projected' => 'Proyectado',
+                            'pending' => 'Pendiente',
+                            'partially_paid' => 'Pago parcial',
+                            'paid' => 'Pagado',
+                            'overdue' => 'Vencido',
+                            'cancelled' => 'Cancelado',
+                            default => $agenda['status']->value,
+                        })
+                        @php($dueClass = match (true) {
+                            $agenda['is_paid'] => 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300',
+                            $agenda['status']->value === 'projected' => 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-300',
+                            $agenda['due_days'] !== null && $agenda['due_days'] <= 5 => 'border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300',
+                            $agenda['due_days'] !== null && $agenda['due_days'] <= 10 => 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300',
+                            default => 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300',
+                        })
                         <tr>
                             <td><span class="inline-block h-4 w-4 rounded-full ring-4 {{ $trafficClass }}"
                                     title="{{ $agenda['is_paid'] ? ($agenda['payment_timing_label'] ?: 'Pagado') : ($agenda['status']->value === 'overdue' ? 'Pago vencido' : 'Obligación pendiente') }}"
@@ -163,7 +171,7 @@
                                 @if ($agenda['balance'] !== null && $agenda['balance'] > 0)<span class="block text-xs font-normal text-muted">Saldo {{ number_format($agenda['balance'], 2) }}</span>@endif
                             </td>
                             <td><span
-                                    class="rounded-full px-2.5 py-1 text-[10px] font-black uppercase {{ $agenda['is_paid'] ? 'bg-emerald-100 text-emerald-700' : ($agenda['status']->value === 'overdue' ? 'bg-red-100 text-red-700' : ($agenda['status']->value === 'partially_paid' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700')) }}">{{ str_replace('_', ' ', $agenda['status']->value) }}</span>
+                                    class="rounded-full px-2.5 py-1 text-[10px] font-black uppercase {{ $agenda['is_paid'] ? 'bg-emerald-100 text-emerald-700' : ($agenda['status']->value === 'overdue' ? 'bg-red-100 text-red-700' : ($agenda['status']->value === 'projected' ? 'bg-slate-100 text-slate-700' : ($agenda['status']->value === 'partially_paid' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'))) }}">{{ $statusLabel }}</span>
                             </td>
                             <td>
                                 <div class="flex items-center gap-2 whitespace-nowrap">@if (!$agenda['is_paid'])<button type="button"
@@ -192,7 +200,7 @@
                         Compromisos pagados</div>
                     @php($paidSeparatorShown = true)
                 @endif
-                @php($mobileDueClass = $agenda['is_paid'] ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : ($agenda['status']->value === 'overdue' ? 'border-red-200 bg-red-50 text-red-700' : ($agenda['due_days'] !== null && $agenda['due_days'] <= 5 ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-sky-200 bg-sky-50 text-sky-700')))
+                @php($mobileDueClass = $agenda['is_paid'] ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : ($agenda['status']->value === 'overdue' ? 'border-red-200 bg-red-50 text-red-700' : ($agenda['status']->value === 'projected' ? 'border-slate-200 bg-slate-50 text-slate-700' : ($agenda['due_days'] !== null && $agenda['due_days'] <= 5 ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-sky-200 bg-sky-50 text-sky-700'))))
                 @if ($agenda['is_paid'])
                     @php($mobileDueClass = 'border-brand/30 bg-brand/10 text-brand')
                 @endif
@@ -203,7 +211,7 @@
                             <p class="text-sm text-muted">{{ $commitment->beneficiary->name }} ·
                                 {{ $commitment->category }}</p>
                         </div><span
-                            class="rounded-full px-2 py-1 text-[10px] font-black uppercase {{ $agenda['is_paid'] ? 'bg-emerald-100 text-emerald-700' : ($agenda['status']->value === 'overdue' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700') }}">{{ str_replace('_', ' ', $agenda['status']->value) }}</span>
+                            class="rounded-full px-2 py-1 text-[10px] font-black uppercase {{ $agenda['is_paid'] ? 'bg-emerald-100 text-emerald-700' : ($agenda['status']->value === 'overdue' ? 'bg-red-100 text-red-700' : ($agenda['status']->value === 'projected' ? 'bg-slate-100 text-slate-700' : 'bg-amber-100 text-amber-700')) }}">{{ $statusLabel }}</span>
                     </div>
                     <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
                         <div>

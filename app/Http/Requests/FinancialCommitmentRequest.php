@@ -32,6 +32,7 @@ class FinancialCommitmentRequest extends FormRequest
             'has_cutoff' => ['boolean'],
             'cutoff_day' => ['nullable', 'integer', 'between:1,31', Rule::requiredIf(fn (): bool => $this->boolean('has_cutoff'))],
             'due_day' => ['required', 'integer', 'between:1,31'],
+            'activation_days_before_due' => ['nullable', 'integer', 'between:0,365'],
             'is_active' => ['boolean'],
             'observations' => ['nullable', 'string'],
         ];

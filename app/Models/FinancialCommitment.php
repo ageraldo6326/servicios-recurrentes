@@ -20,6 +20,7 @@ class FinancialCommitment extends Model
         'suggested_amount',
         'has_cutoff',
         'cutoff_day',
+        'activation_days_before_due',
         'due_day',
         'is_active',
         'cancelled_at',
@@ -32,6 +33,7 @@ class FinancialCommitment extends Model
         'frequency' => FinancialCommitmentFrequency::class,
         'suggested_amount' => 'decimal:2',
         'has_cutoff' => 'boolean',
+        'activation_days_before_due' => 'integer',
         'is_active' => 'boolean',
         'cancelled_at' => 'date',
     ];

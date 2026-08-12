@@ -258,7 +258,8 @@ class Dashboard extends Component
         $statusMatches = match ($this->status) {
             'paid' => $isPaid,
             'overdue' => $isOverdue,
-            'pending' => ! $isPaid && $agenda['status'] !== CommitmentPaymentStatus::Cancelled,
+            'pending' => in_array($agenda['status'], [CommitmentPaymentStatus::Pending, CommitmentPaymentStatus::PartiallyPaid], true),
+            'projected' => $agenda['status'] === CommitmentPaymentStatus::Projected,
             default => true,
         };
 
