@@ -7,12 +7,14 @@ use App\Enums\ChargeStatus;
 use App\Models\Charge;
 use App\Models\CatalogService;
 use App\Models\Client;
+use App\Models\CompanySetting;
 use App\Models\ContractedService;
 use App\Models\Gestion;
 use App\Models\Payment;
 use App\Models\Provider;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Carbon\Carbon;
 use Tests\TestCase;
 
 class ContractedServiceModuleTest extends TestCase
@@ -163,6 +165,25 @@ class ContractedServiceModuleTest extends TestCase
             ->assertOk()
             ->assertSee('Cobro de hoy')
             ->assertSee('Día '.now()->day);
+    }
+
+    public function test_follow_up_uses_the_configured_company_timezone_for_day_boundaries(): void
+    {
+        [$client, $catalogService, $provider] = $this->entities();
+        ContractedService::create([
+            ...$this->payload($client, $catalogService, $provider),
+            'billing_day' => 12,
+            'status' => ContractedServiceStatus::Active,
+        ]);
+        CompanySetting::create(['timezone' => 'America/Santo_Domingo']);
+        Carbon::setTestNow(Carbon::parse('2026-08-12 00:30:00', 'UTC'));
+
+        $this->get(route('dashboard'))->assertSee('Próximo vencimiento');
+
+        CompanySetting::query()->update(['timezone' => 'UTC']);
+
+        $this->get(route('dashboard'))->assertSee('Cobro de hoy');
+        Carbon::setTestNow();
     }
 
     public function test_marking_a_service_as_paid_registers_payment_and_automatic_gestion(): void

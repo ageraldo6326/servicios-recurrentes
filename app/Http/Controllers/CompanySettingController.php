@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CompanySetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class CompanySettingController extends Controller
 {
@@ -30,6 +31,7 @@ class CompanySettingController extends Controller
             'country' => ['nullable', 'string', 'max:100'],
             'tax_id' => ['nullable', 'string', 'max:100'],
             'logo' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,svg', 'max:2048'],
+            'timezone' => ['required', Rule::in(timezone_identifiers_list())],
         ]);
 
         unset($data['logo']);

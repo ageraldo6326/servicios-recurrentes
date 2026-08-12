@@ -5,7 +5,9 @@ namespace App\Livewire\Dashboard;
 use App\Enums\ChargeStatus;
 use App\Enums\PaymentStatus;
 use App\Models\CatalogService;
+use App\Models\CompanySetting;
 use App\Models\ContractedService;
+use Carbon\CarbonImmutable;
 use App\Models\Provider;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
@@ -16,6 +18,8 @@ use Livewire\Component;
 #[Layout('layouts.app')]
 class FollowUp extends Component
 {
+    private ?CarbonImmutable $evaluationNow = null;
+
     #[Url]
     public string $search = '';
 
@@ -91,6 +95,7 @@ class FollowUp extends Component
 
     private function servicesForFollowUp(): Collection
     {
+        $today = $this->evaluationNow()->startOfDay();
         $services = ContractedService::query()
             ->with([
                 'client',
@@ -100,7 +105,7 @@ class FollowUp extends Component
                 'charges' => fn ($query) => $query->with('payments')->orderBy('due_date'),
             ])
             ->when($this->status !== 'all', fn ($query) => $query->where('status', $this->status))
-            ->when($this->status !== 'cancelled', fn ($query) => $query->whereDate('starts_at', '<=', now()->toDateString()))
+            ->when($this->status !== 'cancelled', fn ($query) => $query->whereDate('starts_at', '<=', $today->toDateString()))
             ->when($this->provider !== 'all', fn ($query) => $query->where('provider_id', $this->provider))
             ->when($this->serviceType !== 'all', fn ($query) => $query->where('catalog_service_id', $this->serviceType))
             ->when($this->search !== '', function ($query): void {
@@ -132,7 +137,8 @@ class FollowUp extends Component
 
     private function followUpType(ContractedService $service): ?string
     {
-        $today = now()->startOfDay();
+        $now = $this->evaluationNow();
+        $today = $now->startOfDay();
         $promise = $service->gestions->filter(fn ($gestion): bool => $gestion->promised_payment_date !== null)->sortByDesc('promised_payment_date')->first();
         $latestGestion = $service->gestions->first();
         $billingDate = $this->billingDate($service);
@@ -162,11 +168,11 @@ class FollowUp extends Component
             return 'payment_pending';
         }
 
-        if ($latestGestion?->next_follow_up_at?->lte(now())) {
+        if ($latestGestion?->next_follow_up_at?->lte($now)) {
             return 'scheduled';
         }
 
-        $daysWithoutContact = $latestGestion?->occurred_at?->diffInDays(now()) ?? $service->created_at->diffInDays(now());
+        $daysWithoutContact = $latestGestion?->occurred_at?->diffInDays($now) ?? $service->created_at->diffInDays($now);
         $result = str($latestGestion?->result ?? '')->lower();
 
         if ($result->contains(['no responde', 'no contestó', 'no contesta']) && $daysWithoutContact >= 2) {
@@ -226,14 +232,14 @@ class FollowUp extends Component
 
     private function billingDate(ContractedService $service)
     {
-        $month = now()->startOfMonth();
+        $month = $this->evaluationNow()->startOfMonth();
 
         return $month->copy()->day(min((int) $service->billing_day, $month->daysInMonth));
     }
 
     private function overdueDays(ContractedService $service): int
     {
-        $today = now()->startOfDay();
+        $today = $this->evaluationNow()->startOfDay();
         $pendingCharge = $service->charges
             ->filter(fn ($charge): bool => in_array($charge->status, [ChargeStatus::Pending, ChargeStatus::Partial, ChargeStatus::Overdue], true))
             ->filter(fn ($charge): bool => $charge->due_date?->lt($today))
@@ -270,6 +276,11 @@ class FollowUp extends Component
             'upcoming' => 'Próximo vencimiento',
             'payment_pending' => 'Pago por validar',
         ];
+    }
+
+    private function evaluationNow(): CarbonImmutable
+    {
+        return $this->evaluationNow ??= CarbonImmutable::now(CompanySetting::configuredTimezone());
     }
 
     private function resetPageIfNeeded(): void
