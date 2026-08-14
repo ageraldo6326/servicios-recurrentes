@@ -37,6 +37,18 @@
     .business-coach-markdown ol { @apply mb-4 list-decimal space-y-1 pl-5; }
     .business-coach-markdown strong { @apply font-black; }
     .business-coach-markdown code { @apply rounded bg-surface-soft px-1 py-0.5 text-xs; }
+    .editor-tool { @apply inline-flex min-h-9 shrink-0 items-center justify-center rounded-lg border border-transparent px-2.5 text-xs font-bold text-ink transition hover:border-brand hover:bg-surface hover:text-brand; }
+    .notebook-editor { @apply text-[15px] leading-7 text-ink; }
+    .notebook-editor h1 { @apply mb-3 mt-7 text-2xl font-black tracking-tight; }
+    .notebook-editor h2 { @apply mb-3 mt-6 text-xl font-black tracking-tight; }
+    .notebook-editor h3 { @apply mb-2 mt-5 text-lg font-bold; }
+    .notebook-editor p { @apply my-3; }
+    .notebook-editor ul { @apply my-3 list-disc space-y-1 pl-6; }
+    .notebook-editor ol { @apply my-3 list-decimal space-y-1 pl-6; }
+    .notebook-editor blockquote { @apply my-4 border-l-4 border-brand/40 pl-4 italic text-muted; }
+    .notebook-editor pre { @apply my-4 overflow-x-auto rounded-xl bg-ink p-4 font-mono text-sm text-white; }
+    .notebook-editor a { @apply font-semibold text-brand underline; }
+    .notebook-editor img { @apply my-4 max-h-[30rem] max-w-full rounded-xl border border-line; }
 }
 
 @layer utilities {

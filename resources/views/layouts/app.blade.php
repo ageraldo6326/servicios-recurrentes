@@ -55,6 +55,9 @@
                 <a wire:navigate href="{{ route('tasks.index') }}"
                     class="sidebar-link {{ request()->routeIs('tasks.*') ? 'active' : '' }}"><span
                         class="text-lg">✓</span> Agenda</a>
+                <a wire:navigate href="{{ route('notebooks.index') }}"
+                    class="sidebar-link {{ request()->routeIs('notebooks.*') ? 'active' : '' }}"><span
+                        class="text-lg">✎</span> Cuadernos</a>
                 <a wire:navigate href="{{ route('dashboard.executive') }}"
                     class="sidebar-link {{ request()->routeIs('dashboard.executive') ? 'active' : '' }}"><span
                         class="text-lg">◒</span> Proyección financiera</a>
