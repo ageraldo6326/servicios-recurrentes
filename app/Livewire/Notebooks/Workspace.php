@@ -57,6 +57,8 @@ final class Workspace extends Component
 
     public ?int $moveTargetSectionId = null;
 
+    public int $editorRefresh = 0;
+
     public $attachmentUpload = null;
 
     public string $notice = '';
@@ -341,8 +343,15 @@ final class Workspace extends Component
         $version = $page->versions()->whereKey($versionId)->firstOrFail();
         $this->authorize('update', $page);
         $editor->restore($page, $version, auth()->user());
+        $this->editorRefresh++;
         $this->notice = 'Versión restaurada. El historial posterior se conserva.';
-        $this->dispatch('notebook-editor-reload');
+    }
+
+    public function reloadEditor(): void
+    {
+        $page = $this->ownedPage((int) $this->pageId);
+        $this->authorize('view', $page);
+        $this->editorRefresh++;
     }
 
     public function uploadAttachment(): void

@@ -77,6 +77,17 @@ final class NotebooksModuleTest extends TestCase
         $editor->save($page->fresh(), $user, 'Segunda', '<p>Dos</p>', 1);
     }
 
+    public function test_editor_is_refreshed_only_when_the_user_requests_it(): void
+    {
+        $user = User::factory()->create();
+        $page = $this->pageFor($user);
+
+        Livewire::actingAs($user)->test(Workspace::class, ['pageId' => (string) $page->id])
+            ->assertSet('editorRefresh', 0)
+            ->call('reloadEditor')
+            ->assertSet('editorRefresh', 1);
+    }
+
     public function test_versions_are_restorable_without_deleting_later_history(): void
     {
         $user = User::factory()->create();
