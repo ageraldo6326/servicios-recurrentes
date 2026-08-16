@@ -65,6 +65,18 @@ final class NotebooksModuleTest extends TestCase
         $this->assertStringContainsString('Cliente A', (string) $page->searchable_text);
     }
 
+    public function test_editor_autosave_does_not_render_the_workspace_again(): void
+    {
+        $user = User::factory()->create();
+        $page = $this->pageFor($user);
+
+        $component = Livewire::actingAs($user)->test(Workspace::class, ['pageId' => (string) $page->id])
+            ->call('saveEditor', $page->id, 'Nota en curso', '<p>El cursor debe conservarse aquí.</p>', 1)
+            ->assertDispatched('notebook-page-saved');
+
+        $this->assertArrayNotHasKey('html', $component->effects);
+    }
+
     public function test_optimistic_concurrency_prevents_overwriting_a_newer_page(): void
     {
         $user = User::factory()->create();

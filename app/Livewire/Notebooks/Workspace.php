@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Renderless;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -321,6 +322,7 @@ final class Workspace extends Component
         $page->update(['is_favorite' => ! $page->is_favorite]);
     }
 
+    #[Renderless]
     public function saveEditor(int $id, string $title, string $html, int $version, NotePageEditorService $editor): void
     {
         $page = $this->ownedPage($id);

@@ -74,10 +74,12 @@ npm ci
 npm run build
 
 php artisan migrate 
-php artisan storage:link
+
 
 php artisan optimize:clear
 php artisan optimize
+
+php artisan storage:link
 
 php artisan queue:restart
 ```
