@@ -103,6 +103,35 @@ window.notebookEditor = (pageId, version, title, html) => ({
         this.schedule();
     },
 
+    paste(event) {
+        const text = event.clipboardData?.getData('text/plain');
+
+        if (!text || !/\r?\n/.test(text)) {
+            return;
+        }
+
+        event.preventDefault();
+        const paragraphs = text
+            .replace(/\r\n?/g, '\n')
+            .split('\n')
+            .map((line) => `<p>${line === '' ? '<br>' : this.escapeHtml(line)}</p>`)
+            .join('');
+
+        this.$refs.body.focus();
+        document.execCommand('insertHTML', false, paragraphs);
+        this.schedule();
+    },
+
+    escapeHtml(value) {
+        return value.replace(/[&<>"']/g, (character) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;',
+        })[character]);
+    },
+
     checklist() {
         this.command('insertHTML', '<ul><li><input type="checkbox" disabled> Tarea</li></ul>');
     },

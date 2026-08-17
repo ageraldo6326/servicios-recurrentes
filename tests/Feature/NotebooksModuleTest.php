@@ -65,6 +65,28 @@ final class NotebooksModuleTest extends TestCase
         $this->assertStringContainsString('Cliente A', (string) $page->searchable_text);
     }
 
+    public function test_editor_preserves_line_breaks_and_spanish_characters(): void
+    {
+        $user = User::factory()->create();
+        $page = $this->pageFor($user);
+
+        app(NotePageEditorService::class)->save(
+            $page,
+            $user,
+            'Reunión: información útil',
+            "<div>Primera línea con acción</div><div>Segunda línea: España, niño y canción</div><p>Última línea\ncon salto interno</p>",
+            1,
+        );
+
+        $page->refresh();
+
+        $this->assertSame('Reunión: información útil', $page->title);
+        $this->assertStringContainsString('<p>Primera línea con acción</p>', $page->html());
+        $this->assertStringContainsString('<p>Segunda línea: España, niño y canción</p>', $page->html());
+        $this->assertStringContainsString('Última línea<br>con salto interno', $page->html());
+        $this->assertSame('Reunión: información útil Primera línea con acción Segunda línea: España, niño y canción Última línea con salto interno', $page->searchable_text);
+    }
+
     public function test_editor_autosave_does_not_render_the_workspace_again(): void
     {
         $user = User::factory()->create();
