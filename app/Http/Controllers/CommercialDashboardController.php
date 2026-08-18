@@ -2,16 +2,37 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\CommercialQuoteStatus;
+use App\Http\Requests\CommercialAnalyticsFilterRequest;
 use App\Models\CommercialInvoice;
 use App\Models\CommercialQuote;
+use App\Services\CommercialAnalyticsService;
 
 class CommercialDashboardController extends Controller
 {
-    public function __invoke()
+    public function __invoke(CommercialAnalyticsFilterRequest $request, CommercialAnalyticsService $analytics)
     {
-        $month = now()->startOfMonth();
-        $invoices = CommercialInvoice::with('client', 'items')->where('issue_date', '>=', $month)->get();
-        return view('commercial.dashboard', ['invoicesThisMonth' => $invoices->count(), 'billedThisMonth' => $invoices->sum->total, 'openQuotes' => CommercialQuote::whereIn('status', [CommercialQuoteStatus::Draft->value, CommercialQuoteStatus::Sent->value, CommercialQuoteStatus::Viewed->value])->count(), 'acceptedQuotes' => CommercialQuote::where('status', CommercialQuoteStatus::Accepted->value)->count(), 'latestQuotes' => CommercialQuote::with('client')->latest()->take(5)->get(), 'latestInvoices' => CommercialInvoice::with('client')->latest()->take(5)->get()]);
+        $filters = $request->validated();
+        ['from' => $from, 'to' => $to] = $analytics->period($filters['date_from'] ?? null, $filters['date_to'] ?? null);
+
+        return view('commercial.dashboard', [
+            'from' => $from,
+            'to' => $to,
+            'invoiceSummary' => $analytics->invoiceSummary($from, $to),
+            'quoteSummary' => $analytics->quoteSummary($from, $to),
+            'latestQuotes' => CommercialQuote::with('client', 'items')->latest()->take(5)->get(),
+            'latestInvoices' => CommercialInvoice::with('client', 'items')->latest()->take(5)->get(),
+            'pendingInvoices' => CommercialInvoice::with('client', 'items')
+                ->whereIn('status', ['pending', 'overdue'])
+                ->whereNotNull('due_date')
+                ->orderBy('due_date')
+                ->take(5)
+                ->get(),
+            'openQuotesForFollowUp' => CommercialQuote::with('client', 'items')
+                ->whereIn('status', ['draft', 'sent', 'viewed'])
+                ->whereNotNull('due_date')
+                ->orderBy('due_date')
+                ->take(5)
+                ->get(),
+        ]);
     }
 }
