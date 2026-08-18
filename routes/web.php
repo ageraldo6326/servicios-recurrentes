@@ -25,6 +25,7 @@ use App\Livewire\ContractedServices\Index as ContractedServicesIndex;
 use App\Livewire\Dashboard\FollowUp;
 use App\Livewire\FinancialAgenda\Beneficiaries\Index as BeneficiariesIndex;
 use App\Livewire\FinancialAgenda\Commitments\Index as CommitmentsIndex;
+use App\Livewire\FinancialAgenda\CreditCardsDashboard;
 use App\Livewire\FinancialAgenda\Dashboard as FinancialAgendaDashboard;
 use App\Livewire\Gestiones\Index as GestionesIndex;
 use App\Livewire\Notebooks\Workspace as NotebooksWorkspace;
@@ -96,6 +97,7 @@ Route::middleware(['auth'])->group(function (): void {
 
     Route::prefix('financial-agenda')->name('financial-agenda.')->group(function (): void {
         Route::get('/', FinancialAgendaDashboard::class)->name('index');
+        Route::get('tarjetas', CreditCardsDashboard::class)->name('cards.dashboard');
         Route::get('beneficiaries', BeneficiariesIndex::class)->name('beneficiaries.index');
         Route::resource('beneficiaries', BeneficiaryController::class)->except(['index', 'show', 'destroy']);
         Route::get('commitments', CommitmentsIndex::class)->name('commitments.index');

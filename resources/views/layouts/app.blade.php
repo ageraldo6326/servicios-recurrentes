@@ -62,8 +62,11 @@
                     class="sidebar-link {{ request()->routeIs('dashboard.executive') ? 'active' : '' }}"><span
                         class="text-lg">◒</span> Proyección financiera</a>
                 <a wire:navigate href="{{ route('financial-agenda.index') }}"
-                            class="sidebar-link {{ request()->routeIs('financial-agenda.*') ? 'active' : '' }}"><span
+                            class="sidebar-link {{ request()->routeIs('financial-agenda.index', 'financial-agenda.beneficiaries.*', 'financial-agenda.commitments.*') ? 'active' : '' }}"><span
                             class="text-lg">◷</span>Gestión de Compromisos</a>
+                <a wire:navigate href="{{ route('financial-agenda.cards.dashboard') }}"
+                            class="sidebar-link {{ request()->routeIs('financial-agenda.cards.*') ? 'active' : '' }}"><span
+                            class="text-lg">💳</span>Tarjetas</a>
                 <a wire:navigate href="{{ route('breaks.dashboard') }}"
                     class="sidebar-link {{ request()->routeIs('breaks.*') ? 'active' : '' }}"><span
                         class="text-lg">◌</span> Descansos activos</a>

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Enums\CreditCardPurchaseEfficiency;
+use App\Livewire\FinancialAgenda\CreditCardsDashboard;
 use App\Livewire\FinancialAgenda\Dashboard;
 use App\Models\Beneficiary;
 use App\Models\FinancialCommitment;
@@ -63,7 +64,19 @@ class CreditCardStrategyServiceTest extends TestCase
         Livewire::actingAs($user)
             ->test(Dashboard::class)
             ->assertSee('Alertas financieras')
-            ->assertSee('Estrategia de tarjetas');
+            ->assertSee('Ver tarjetas');
+    }
+
+    public function test_dedicated_cards_dashboard_shows_colored_strategy_cards(): void
+    {
+        $user = User::factory()->create();
+        $this->card(cutoffDay: 2, dueDay: 24);
+
+        Livewire::actingAs($user)
+            ->test(CreditCardsDashboard::class)
+            ->assertSee('Tarjetas')
+            ->assertSee('BHD Platinum')
+            ->assertSee('Próximo corte');
     }
 
     private function card(int $cutoffDay, int $dueDay, ?float $statementBalance = null, bool $creditCard = true): FinancialCommitment

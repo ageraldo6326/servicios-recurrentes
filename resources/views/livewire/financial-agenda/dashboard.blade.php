@@ -42,19 +42,7 @@
 
     @if ($cardAlerts->isNotEmpty())
         <section class="panel mb-5 border-brand/30">
-            <div class="mb-4 flex items-start justify-between gap-4"><div><p class="text-xs font-black uppercase tracking-[0.14em] text-brand">Alertas financieras</p><h2 class="mt-1 text-xl font-black text-ink">Estrategia de tarjetas</h2><p class="mt-1 text-sm text-muted">Prioriza el saldo al corte antes de cualquier recomendación de consumo.</p></div><span class="rounded-full bg-brand/10 px-3 py-1 text-xs font-black text-brand">{{ $cardAlerts->count() }} tarjetas</span></div>
-            <div class="grid gap-4 lg:grid-cols-2">
-                @foreach ($cardAlerts as $item)
-                    @php($commitment = $item['commitment']) @php($card = $item['card']) @php($alert = $card['alert'])
-                    <article class="rounded-xl border p-4 {{ $alert['level'] === 'critical' ? 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/20' : ($alert['level'] === 'high' ? 'border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/20' : 'border-line bg-surface-soft/60') }}">
-                        <div class="flex items-start justify-between gap-3"><div><p class="font-black text-ink">💳 {{ $commitment->name }}</p><p class="mt-1 text-xs font-bold uppercase tracking-wide {{ $alert['level'] === 'critical' ? 'text-red-700 dark:text-red-300' : ($alert['level'] === 'high' ? 'text-amber-700 dark:text-amber-300' : 'text-brand') }}">{{ $alert['title'] }}</p></div><a wire:navigate href="{{ route('financial-agenda.commitments.edit', $commitment) }}" class="button-secondary min-h-9 px-3 py-1 text-xs">Configurar</a></div>
-                        <p class="mt-2 text-sm text-muted">{{ $alert['message'] }}</p>
-                        <div class="mt-4 grid grid-cols-2 gap-3 text-xs"><div><p class="text-muted">Próximo corte</p><p class="mt-1 font-black text-ink">{{ $card['next_cutoff']->format('d/m/Y') }} · {{ $card['cutoff_days'] }} días</p></div><div><p class="text-muted">Pago recomendado</p><p class="mt-1 font-black text-ink">{{ $card['recommended_payment_date']->format('d/m/Y') }}</p></div><div><p class="text-muted">Si compras hoy</p><p class="mt-1 font-black text-ink">~{{ $card['estimated_days_to_pay'] }} días</p></div><div><p class="text-muted">Estado de compra</p><p class="mt-1 font-black text-ink">{{ $card['efficiency']->label() }}</p></div></div>
-                        @if ($card['statement_balance'] !== null)<p class="mt-3 rounded-lg bg-surface px-3 py-2 text-sm font-black text-ink">Saldo al corte: {{ $card['currency'] }} {{ number_format($card['statement_balance'], 2) }}</p>@endif
-                        @if ($card['available_credit'] !== null)<p class="mt-2 text-xs text-muted">Disponible: {{ $card['currency'] }} {{ number_format($card['available_credit'], 2) }}@if($card['utilization'] !== null) · Utilización {{ $card['utilization'] }}%@endif</p>@endif
-                    </article>
-                @endforeach
-            </div>
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p class="text-xs font-black uppercase tracking-[0.14em] text-brand">Alertas financieras</p><h2 class="mt-1 text-xl font-black text-ink">{{ $cardAlerts->count() }} tarjetas con estrategia activa</h2><p class="mt-1 text-sm text-muted">Consulta cortes, pagos y ventanas de compra en su dashboard especializado.</p></div><a wire:navigate href="{{ route('financial-agenda.cards.dashboard') }}" class="button">Ver tarjetas →</a></div>
         </section>
     @endif
 
