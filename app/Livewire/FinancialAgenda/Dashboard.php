@@ -12,6 +12,7 @@ use App\Models\ContractedService;
 use App\Models\ExchangeRate;
 use App\Models\FinancialCommitment;
 use App\Services\CommitmentOccurrenceService;
+use App\Services\CreditCardStrategyService;
 use App\Services\FinancialCommitmentAgendaService;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -151,6 +152,7 @@ class Dashboard extends Component
     public function render(
         FinancialCommitmentAgendaService $agendaService,
         CommitmentOccurrenceService $occurrenceService,
+        CreditCardStrategyService $creditCardStrategyService,
     ): View {
         $today = CarbonImmutable::now(config('app.timezone'))->startOfDay();
         [$rangeStart, $rangeEnd] = $this->selectedRange($today);
@@ -162,15 +164,23 @@ class Dashboard extends Component
             ->when($this->category !== '', fn ($query) => $query->where('category', $this->category))
             ->orderBy('name')
             ->get()
-            ->flatMap(function (FinancialCommitment $commitment) use ($agendaService, $occurrenceService, $today): array {
+            ->flatMap(function (FinancialCommitment $commitment) use ($agendaService, $occurrenceService, $creditCardStrategyService, $today): array {
+                $cardStrategy = $creditCardStrategyService->forCommitment($commitment, $today);
+
                 return $occurrenceService->ensureForDate($commitment, $today)
-                    ->map(function (CommitmentPayment $occurrence) use ($commitment, $agendaService, $today): array {
+                    ->map(function (CommitmentPayment $occurrence) use ($commitment, $agendaService, $cardStrategy, $today): array {
                         $occurrence->setRelation('financialCommitment', $commitment);
 
-                        return ['commitment' => $commitment, 'agenda' => $agendaService->forOccurrence($occurrence, $today)];
+                        return ['commitment' => $commitment, 'agenda' => $agendaService->forOccurrence($occurrence, $today), 'card' => $cardStrategy];
                     })
                     ->all();
             })
+            ->values();
+
+        $cardAlerts = $commitments
+            ->filter(fn (array $item): bool => $item['card'] !== null)
+            ->unique(fn (array $item): int => $item['commitment']->id)
+            ->sortBy(fn (array $item): int => $item['card']['alert']['rank'])
             ->values();
 
         $nextOccurrenceIds = $commitments
@@ -215,6 +225,7 @@ class Dashboard extends Component
 
         return view('livewire.financial-agenda.dashboard', [
             'commitments' => $commitments,
+            'cardAlerts' => $cardAlerts,
             'beneficiaries' => Beneficiary::query()->where('is_active', true)->orderBy('name')->get(),
             'categories' => $categories,
             'summary' => $this->summary($commitments, $today),

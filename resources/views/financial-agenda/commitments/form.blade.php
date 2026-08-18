@@ -2,7 +2,7 @@
 
 @section('content')
     @include('partials.heading', ['heading' => $commitment->exists ? 'Editar compromiso financiero' : 'Nuevo compromiso financiero'])
-    <form class="panel max-w-3xl space-y-4" method="post" action="{{ $commitment->exists ? route('financial-agenda.commitments.update', $commitment) : route('financial-agenda.commitments.store') }}" x-data="{ hasCutoff: {{ old('has_cutoff', $commitment->has_cutoff) ? 'true' : 'false' }} }">
+    <form class="panel max-w-3xl space-y-4" method="post" action="{{ $commitment->exists ? route('financial-agenda.commitments.update', $commitment) : route('financial-agenda.commitments.store') }}" x-data="{ hasCutoff: {{ old('has_cutoff', $commitment->has_cutoff) ? 'true' : 'false' }}, isCreditCard: {{ old('is_credit_card', $commitment->isCreditCard()) ? 'true' : 'false' }} }">
         @csrf
         @if($commitment->exists) @method('put') @endif
         <div class="grid gap-4 sm:grid-cols-2">
@@ -45,6 +45,21 @@
             <label class="mt-3 block max-w-xs text-sm font-bold text-ink" x-show="hasCutoff" x-cloak>Día de corte
                 <input class="input" type="number" name="cutoff_day" min="1" max="31" value="{{ old('cutoff_day', $commitment->cutoff_day) }}" :required="hasCutoff">
             </label>
+        </div>
+        <div class="rounded-xl border border-brand/30 bg-brand/5 p-4">
+            <label class="flex items-center gap-2 text-sm font-bold text-ink"><input type="hidden" name="is_credit_card" value="0"><input type="checkbox" name="is_credit_card" value="1" x-model="isCreditCard"> Esta obligación es una tarjeta de crédito</label>
+            <div x-show="isCreditCard" x-cloak class="mt-4 grid gap-4 border-t border-brand/20 pt-4 sm:grid-cols-2">
+                <label class="text-sm font-bold text-ink">Margen de seguridad (días)<input class="input" type="number" name="payment_safety_days" min="0" max="31" value="{{ old('payment_safety_days', $commitment->payment_safety_days ?? 2) }}"></label>
+                <label class="text-sm font-bold text-ink">Moneda<input class="input uppercase" name="card_currency" maxlength="3" value="{{ old('card_currency', $commitment->card_currency ?? 'DOP') }}"></label>
+                <label class="text-sm font-bold text-ink">Límite de crédito<input class="input" type="number" name="credit_limit" min="0" step="0.01" value="{{ old('credit_limit', $commitment->credit_limit) }}"></label>
+                <label class="text-sm font-bold text-ink">Balance actual<input class="input" type="number" name="current_balance" min="0" step="0.01" value="{{ old('current_balance', $commitment->current_balance) }}"><span class="mt-1 block text-xs font-normal text-muted">Se actualiza manualmente; no registra consumos individuales.</span></label>
+                <label class="text-sm font-bold text-ink">Saldo al corte<input class="input" type="number" name="statement_balance" min="0" step="0.01" value="{{ old('statement_balance', $commitment->statement_balance) }}"><span class="mt-1 block text-xs font-normal text-muted">Este es el monto que se prioriza para pago.</span></label>
+                <label class="text-sm font-bold text-ink">Alertas de corte<input class="input" name="cutoff_alert_days" value="{{ old('cutoff_alert_days', $commitment->cutoff_alert_days ?? '7,3,1') }}"><span class="mt-1 block text-xs font-normal text-muted">Días separados por comas.</span></label>
+                <label class="text-sm font-bold text-ink">Alertas de pago<input class="input" name="payment_alert_days" value="{{ old('payment_alert_days', $commitment->payment_alert_days ?? '7,3,1') }}"></label>
+                <label class="text-sm font-bold text-ink">Ventana excelente hasta día<input class="input" type="number" name="purchase_excellent_days" min="1" max="30" value="{{ old('purchase_excellent_days', $commitment->purchase_excellent_days ?? 7) }}"></label>
+                <label class="text-sm font-bold text-ink">Ventana buena hasta día<input class="input" type="number" name="purchase_good_days" min="1" max="30" value="{{ old('purchase_good_days', $commitment->purchase_good_days ?? 15) }}"></label>
+                <label class="text-sm font-bold text-ink">Ventana regular hasta día<input class="input" type="number" name="purchase_regular_days" min="1" max="30" value="{{ old('purchase_regular_days', $commitment->purchase_regular_days ?? 22) }}"></label>
+            </div>
         </div>
         <label class="flex items-center gap-2 text-sm font-semibold text-ink">
             <input type="hidden" name="is_active" value="0">
