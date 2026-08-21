@@ -55,6 +55,14 @@ class Index extends Component
             ->orderBy('name')
             ->paginate(15);
 
-        return view('livewire.financial-agenda.commitments.index', compact('commitments'));
+        $summary = [
+            'total' => FinancialCommitment::query()->count(),
+            'active' => FinancialCommitment::query()->where('is_active', true)->count(),
+            'total_amount' => (float) FinancialCommitment::query()
+                ->where('is_active', true)
+                ->sum('suggested_amount'),
+        ];
+
+        return view('livewire.financial-agenda.commitments.index', compact('commitments', 'summary'));
     }
 }

@@ -10,6 +10,21 @@
                 wire:navigate href="{{ route('financial-agenda.commitments.create') }}" class="button">＋ Nuevo
                 compromiso</a></div>
     </div>
+    <div class="mb-5 grid gap-3 sm:grid-cols-3">
+        <div class="card">
+            <p class="text-xs font-black uppercase tracking-[0.14em] text-muted">Total de compromisos</p>
+            <p class="mt-2 text-3xl font-black text-ink">{{ $summary['total'] }}</p>
+        </div>
+        <div class="card border-emerald-200 dark:border-emerald-900">
+            <p class="text-xs font-black uppercase tracking-[0.14em] text-emerald-700 dark:text-emerald-300">Compromisos activos</p>
+            <p class="mt-2 text-3xl font-black text-emerald-700 dark:text-emerald-300">{{ $summary['active'] }}</p>
+        </div>
+        <div class="card border-brand/30">
+            <p class="text-xs font-black uppercase tracking-[0.14em] text-brand">Monto total</p>
+            <p class="mt-2 text-3xl font-black text-ink">{{ number_format($summary['total_amount'], 2) }}</p>
+            <p class="mt-1 text-xs text-muted">Solo compromisos activos</p>
+        </div>
+    </div>
     <div class="panel mb-5">
         <div class="grid gap-3 md:grid-cols-[1fr_220px_auto]"><label class="relative"><span class="sr-only">Buscar
                     compromisos</span><span

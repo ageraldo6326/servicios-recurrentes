@@ -6,6 +6,7 @@ namespace Tests\Feature;
 
 use App\Enums\FinancialCommitmentFrequency;
 use App\Livewire\FinancialAgenda\Dashboard;
+use App\Livewire\FinancialAgenda\Commitments\Index as CommitmentsIndex;
 use App\Models\Beneficiary;
 use App\Models\CommitmentPayment;
 use App\Models\ExchangeRate;
@@ -147,6 +148,38 @@ class FinancialAgendaCrudTest extends TestCase
             ->assertSee('Servidor principal')
             ->set('beneficiaryId', (string) $beneficiary->id)
             ->assertSee('AWS');
+    }
+
+    public function test_commitments_index_displays_its_summary(): void
+    {
+        $user = User::factory()->create();
+        $beneficiary = Beneficiary::query()->create(['name' => 'Proveedor de prueba', 'type' => 'Servicios']);
+
+        FinancialCommitment::query()->create([
+            'beneficiary_id' => $beneficiary->id,
+            'name' => 'Compromiso activo',
+            'category' => 'Prueba',
+            'frequency' => FinancialCommitmentFrequency::Monthly,
+            'suggested_amount' => 125,
+            'due_day' => 10,
+            'is_active' => true,
+        ]);
+        FinancialCommitment::query()->create([
+            'beneficiary_id' => $beneficiary->id,
+            'name' => 'Compromiso inactivo',
+            'category' => 'Prueba',
+            'frequency' => FinancialCommitmentFrequency::Monthly,
+            'suggested_amount' => 75,
+            'due_day' => 15,
+            'is_active' => false,
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(CommitmentsIndex::class)
+            ->assertSee('Total de compromisos')
+            ->assertSee('Compromisos activos')
+            ->assertSee('Monto total')
+            ->assertSee('125.00');
     }
 
     public function test_dashboard_can_register_a_payment_without_leaving_the_screen(): void
