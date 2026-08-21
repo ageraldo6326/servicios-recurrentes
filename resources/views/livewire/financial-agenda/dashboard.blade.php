@@ -12,7 +12,8 @@
             <p class="mt-2 text-sm text-muted">Compromisos ordenados automáticamente por prioridad.</p>
         </div>
         <div class="flex flex-col gap-2 sm:flex-row"><a wire:navigate
-                href="{{ route('financial-agenda.beneficiaries.index') }}" class="button-secondary">Beneficiarios</a><a
+                href="{{ route('financial-agenda.commitments.index') }}" class="button-secondary">Ver todos</a><a
+                wire:navigate href="{{ route('financial-agenda.beneficiaries.index') }}" class="button-secondary">Beneficiarios</a><a
                 wire:navigate href="{{ route('financial-agenda.commitments.create') }}" class="button">＋ Nuevo
                 compromiso</a></div>
     </div>
