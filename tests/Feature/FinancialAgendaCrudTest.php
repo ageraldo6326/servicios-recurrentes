@@ -5,12 +5,17 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Enums\FinancialCommitmentFrequency;
+use App\Enums\ContractedServiceStatus;
 use App\Livewire\FinancialAgenda\Dashboard;
 use App\Livewire\FinancialAgenda\Commitments\Index as CommitmentsIndex;
 use App\Models\Beneficiary;
+use App\Models\CatalogService;
+use App\Models\Client;
 use App\Models\CommitmentPayment;
+use App\Models\ContractedService;
 use App\Models\ExchangeRate;
 use App\Models\FinancialCommitment;
+use App\Models\Provider;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -180,6 +185,43 @@ class FinancialAgendaCrudTest extends TestCase
             ->assertSee('Compromisos activos')
             ->assertSee('Monto total')
             ->assertSee('125.00');
+    }
+
+    public function test_dashboard_deducts_all_active_commitments_from_the_monthly_benefit(): void
+    {
+        $user = User::factory()->create();
+        $beneficiary = Beneficiary::query()->create(['name' => 'Beneficiario de prueba', 'type' => 'Servicios']);
+        $client = Client::query()->create(['name' => 'Cliente de prueba', 'phone' => '8090000000']);
+        $catalogService = CatalogService::query()->create(['name' => 'Servicio de prueba', 'is_active' => true]);
+        $provider = Provider::query()->create(['name' => 'Proveedor de prueba', 'payment_method' => 'Mensual']);
+
+        ContractedService::query()->create([
+            'client_id' => $client->id,
+            'catalog_service_id' => $catalogService->id,
+            'provider_id' => $provider->id,
+            'price' => 1000,
+            'price_currency' => 'USD',
+            'cost' => 200,
+            'cost_currency' => 'USD',
+            'billing_day' => 15,
+            'starts_at' => now()->startOfMonth(),
+            'status' => ContractedServiceStatus::Active,
+        ]);
+        FinancialCommitment::query()->create([
+            'beneficiary_id' => $beneficiary->id,
+            'name' => 'Compromiso mensual activo',
+            'category' => 'Prueba',
+            'frequency' => FinancialCommitmentFrequency::Monthly,
+            'suggested_amount' => 10000,
+            'due_day' => 10,
+            'is_active' => true,
+        ]);
+        ExchangeRate::query()->create(['rate' => 58, 'effective_date' => now()->toDateString()]);
+
+        Livewire::actingAs($user)
+            ->test(Dashboard::class)
+            ->assertSee('RD$ 36,400.00')
+            ->assertSee('Compromisos activos: RD$ 10,000.00');
     }
 
     public function test_dashboard_can_register_a_payment_without_leaving_the_screen(): void

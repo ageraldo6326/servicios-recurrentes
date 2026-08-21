@@ -222,6 +222,12 @@ class Dashboard extends Component
             ->first();
         $monthlyBenefitUsd = $this->monthlyBenefitUsd();
         $monthlyBenefitDop = $currentRate === null ? null : $monthlyBenefitUsd * (float) $currentRate->rate;
+        $activeCommitmentsAmount = (float) FinancialCommitment::query()
+            ->where('is_active', true)
+            ->sum('suggested_amount');
+        $netMonthlyBenefitDop = $monthlyBenefitDop === null
+            ? null
+            : $monthlyBenefitDop - $activeCommitmentsAmount;
 
         return view('livewire.financial-agenda.dashboard', [
             'commitments' => $commitments,
@@ -232,6 +238,8 @@ class Dashboard extends Component
             'currentRate' => $currentRate,
             'monthlyBenefitUsd' => $monthlyBenefitUsd,
             'monthlyBenefitDop' => $monthlyBenefitDop,
+            'activeCommitmentsAmount' => $activeCommitmentsAmount,
+            'netMonthlyBenefitDop' => $netMonthlyBenefitDop,
             'rateHistory' => ExchangeRate::query()->latest('effective_date')->latest('id')->limit(5)->get(),
         ]);
     }

@@ -50,7 +50,7 @@
     <div class="mb-5 grid gap-5 lg:grid-cols-[1.35fr_.65fr]">
         <div class="card border-brand/30">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div><p class="text-xs font-black uppercase tracking-[0.14em] text-brand">Resultado mensual</p><p class="mt-2 text-3xl font-black text-brand">Beneficio en DOP: {{ $monthlyBenefitDop === null ? 'Configura la tasa' : 'RD$ '.number_format($monthlyBenefitDop, 2) }}</p><p class="mt-2 text-xl font-black text-ink">Después de compromisos: {{ $monthlyBenefitDop === null ? '—' : 'RD$ '.number_format($monthlyBenefitDop - $summary['total_amount'], 2) }}</p><p class="mt-2 text-xs font-semibold text-muted">Beneficio base de servicios: USD {{ number_format($monthlyBenefitUsd, 2) }}</p></div>
+                <div><p class="text-xs font-black uppercase tracking-[0.14em] text-brand">Resultado mensual</p><p class="mt-2 text-3xl font-black text-brand">Beneficio en DOP: {{ $netMonthlyBenefitDop === null ? 'Configura la tasa' : 'RD$ '.number_format($netMonthlyBenefitDop, 2) }}</p><p class="mt-2 text-xl font-black text-ink">Base de servicios: {{ $monthlyBenefitDop === null ? '—' : 'RD$ '.number_format($monthlyBenefitDop, 2) }} · Compromisos activos: RD$ {{ number_format($activeCommitmentsAmount, 2) }}</p><p class="mt-2 text-xs font-semibold text-muted">Beneficio base de servicios: USD {{ number_format($monthlyBenefitUsd, 2) }}</p></div>
             </div>
         </div>
 
