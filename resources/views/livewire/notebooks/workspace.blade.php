@@ -61,7 +61,7 @@
     @elseif ($view === 'trash')
         <livewire:notebooks.trash-list />
     @else
-        <div class="grid gap-4 xl:grid-cols-[minmax(190px,.7fr)_minmax(190px,.7fr)_minmax(220px,.9fr)_minmax(0,2.2fr)] xl:gap-0 xl:overflow-hidden xl:rounded-2xl xl:border xl:border-line xl:bg-surface xl:shadow-card">
+        <div class="grid gap-4 xl:grid-cols-[minmax(190px,.7fr)_minmax(190px,.7fr)_minmax(220px,.9fr)_minmax(0,2.2fr)] xl:gap-0 xl:overflow-visible xl:rounded-2xl xl:border xl:border-line xl:bg-surface xl:shadow-card">
             <section class="surface overflow-hidden xl:rounded-none xl:border-0 xl:border-r xl:shadow-none">
                 <div class="flex items-center justify-between border-b border-line px-4 py-4"><h2 class="text-sm font-black uppercase tracking-[.14em] text-muted">Cuadernos</h2><button type="button" class="text-lg font-black text-brand" x-on:click="$dispatch('notebook-create-open')" aria-label="Crear cuaderno">＋</button></div>
                 <div class="max-h-[28rem] overflow-y-auto p-2 xl:max-h-[calc(100vh-17rem)]">
