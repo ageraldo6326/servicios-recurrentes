@@ -21,6 +21,11 @@
                     <button type="button" wire:click="close" class="button-secondary shrink-0 px-3" aria-label="Cerrar Asesor IA">✕</button>
                 </header>
 
+                <div wire:loading.flex wire:target="analyze" class="shrink-0 items-center gap-3 border-b border-brand/20 bg-brand/10 px-5 py-3 text-sm font-bold text-brand sm:px-8" aria-live="polite">
+                    <span class="h-4 w-4 animate-spin rounded-full border-2 border-brand/25 border-t-brand" aria-hidden="true"></span>
+                    El Asesor IA está analizando la información…
+                </div>
+
                 <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-8 sm:py-6">
                     <form wire:submit="analyze" class="surface p-4 sm:p-5">
                         <div class="grid gap-4 sm:grid-cols-2">
@@ -58,14 +63,14 @@
                                 <span>Entiendo que el contenido se enviará al proveedor de IA configurado para generar este análisis. No se guarda el texto ni las respuestas automáticamente.</span>
                             </label>
                         @endif
+                        @error('privacyAccepted') <p class="mt-2 text-sm font-semibold text-red-600">{{ $message }}</p> @enderror
 
                         @if ($error)
                             <div class="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200" role="alert">{{ $error }}</div>
                         @endif
 
                         <div class="mt-4 flex items-center justify-end gap-3">
-                            <span wire:loading wire:target="analyze" class="text-sm font-semibold text-brand" aria-live="polite">Analizando…</span>
-                            <button type="submit" class="button" wire:loading.attr="disabled" wire:target="analyze" @disabled(! $privacyAccepted)>
+                            <button type="submit" class="button" wire:loading.attr="disabled" wire:target="analyze">
                                 <span wire:loading.remove wire:target="analyze">Generar análisis</span>
                                 <span wire:loading wire:target="analyze">Procesando…</span>
                             </button>

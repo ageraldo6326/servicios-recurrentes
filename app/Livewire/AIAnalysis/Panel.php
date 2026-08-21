@@ -46,6 +46,13 @@ final class Panel extends Component
         ];
     }
 
+    public function messages(): array
+    {
+        return [
+            'privacyAccepted.accepted' => 'Confirma el aviso de privacidad antes de generar el análisis.',
+        ];
+    }
+
     public function openChat(): void
     {
         abort_unless(auth()->check(), 403);

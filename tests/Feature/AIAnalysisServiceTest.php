@@ -57,6 +57,19 @@ class AIAnalysisServiceTest extends TestCase
         $this->assertSame(1, AiUsageLog::query()->count());
     }
 
+    public function test_it_explains_that_privacy_acknowledgement_is_required_before_analyzing(): void
+    {
+        $user = User::factory()->create();
+
+        Livewire::actingAs($user)
+            ->test('ai-analysis.panel')
+            ->call('openChat')
+            ->set('content', 'Información para analizar')
+            ->call('analyze')
+            ->assertHasErrors(['privacyAccepted' => 'accepted'])
+            ->assertSee('Confirma el aviso de privacidad');
+    }
+
     public function test_authenticated_users_can_submit_an_internal_analysis_without_storing_pasted_content(): void
     {
         config(['services.openai.key' => 'test-key']);
