@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Enums\AiAnalysisType;
-use App\Livewire\AIAnalysis\Panel;
 use App\Models\AiUsageLog;
 use App\Models\User;
 use App\Services\AIAnalysis\AIAnalysisService;
@@ -67,7 +66,7 @@ class AIAnalysisServiceTest extends TestCase
         $user = User::factory()->create();
 
         Livewire::actingAs($user)
-            ->test(Panel::class)
+            ->test('ai-analysis.panel')
             ->call('openChat')
             ->set('privacyAccepted', true)
             ->set('content', 'Dato interno que no debe persistir')
