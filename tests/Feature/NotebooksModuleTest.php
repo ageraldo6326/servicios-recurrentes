@@ -34,7 +34,8 @@ final class NotebooksModuleTest extends TestCase
             ->set('sectionName', 'Clientes')
             ->call('createSection')
             ->call('createPage')
-            ->assertSee('Página sin título');
+            ->assertSee('Página sin título')
+            ->assertSee('notebook-editor-toolbar', false);
 
         $notebook = Notebook::query()->where('user_id', $user->id)->firstOrFail();
         $section = $notebook->sections()->firstOrFail();
