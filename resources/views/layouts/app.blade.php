@@ -217,6 +217,7 @@
                 </div>
             </header>
             <livewire:business-coach.panel />
+            <livewire:ai-analysis.panel />
             <main class="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
                 @if (session('success'))
                     <div

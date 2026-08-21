@@ -62,4 +62,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(NotePage::class, 'created_by');
     }
+
+    public function aiUsageLogs(): HasMany
+    {
+        return $this->hasMany(AiUsageLog::class);
+    }
 }

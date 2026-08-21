@@ -44,4 +44,14 @@ return [
         'cache_minutes' => (int) env('OPENAI_CACHE_MINUTES', 10),
     ],
 
+    'ai_analysis' => [
+        'enabled' => (bool) env('AI_ANALYSIS_ENABLED', true),
+        'max_content_characters' => (int) env('AI_ANALYSIS_MAX_CONTENT_CHARACTERS', 20000),
+        'max_question_characters' => (int) env('AI_ANALYSIS_MAX_QUESTION_CHARACTERS', 2000),
+        'requests_per_minute' => (int) env('AI_ANALYSIS_REQUESTS_PER_MINUTE', 6),
+        'requests_per_day' => (int) env('AI_ANALYSIS_REQUESTS_PER_DAY', 40),
+        'input_cost_per_million_tokens' => env('AI_ANALYSIS_INPUT_COST_PER_MILLION_TOKENS'),
+        'output_cost_per_million_tokens' => env('AI_ANALYSIS_OUTPUT_COST_PER_MILLION_TOKENS'),
+    ],
+
 ];
