@@ -28,55 +28,48 @@
                 </div>
             </div>
             <nav class="mt-8 space-y-1" aria-label="Navegación principal">
-                <a wire:navigate href="{{ route('dashboard') }}"
-                    class="sidebar-link {{ request()->routeIs('dashboard') || request()->routeIs('dashboard.follow-up') ? 'active' : '' }}"><span
-                        class="text-lg">⌂</span> Seguimiento de hoy</a>
-                <a wire:navigate href="{{ route('dashboard.operational') }}"
-                    class="sidebar-link {{ request()->routeIs('dashboard.operational') ? 'active' : '' }}"><span
-                        class="text-lg">▣</span> Panel operativo</a>
-                <a wire:navigate href="{{ route('clients.index') }}"
-                    class="sidebar-link {{ request()->routeIs('clients.*') ? 'active' : '' }}"><span
-                        class="text-lg">♙</span> Clientes</a>
-                <a wire:navigate href="{{ route('contracted-services.index') }}"
-                    class="sidebar-link {{ request()->routeIs('contracted-services.*') ? 'active' : '' }}"><span
-                        class="text-lg">◫</span> Servicios contratados</a>
-                <a wire:navigate href="{{ route('catalog-services.index') }}"
-                    class="sidebar-link {{ request()->routeIs('catalog-services.*') ? 'active' : '' }}"><span
-                        class="text-lg">▤</span> Catálogo de servicios</a>
-                <a wire:navigate href="{{ route('charges.index') }}"
-                    class="sidebar-link {{ request()->routeIs('charges.*') || request()->routeIs('payments.*') ? 'active' : '' }}"><span
-                        class="text-lg">▣</span> Cobros y pagos</a>
-                <a wire:navigate href="{{ route('providers.index') }}"
-                    class="sidebar-link {{ request()->routeIs('providers.*') || request()->routeIs('provider-invoices.*') ? 'active' : '' }}"><span
-                        class="text-lg">⌘</span> Proveedores</a>
-                <a wire:navigate href="{{ route('gestions.index') }}"
-                    class="sidebar-link {{ request()->routeIs('gestions.*') ? 'active' : '' }}"><span
-                        class="text-lg">✦</span> Gestiones</a>
-                <a wire:navigate href="{{ route('tasks.index') }}"
-                    class="sidebar-link {{ request()->routeIs('tasks.*') ? 'active' : '' }}"><span
-                        class="text-lg">✓</span> Agenda</a>
-                <a wire:navigate href="{{ route('notebooks.index') }}"
-                    class="sidebar-link {{ request()->routeIs('notebooks.*') ? 'active' : '' }}"><span
-                        class="text-lg">✎</span> Cuadernos</a>
-                <a wire:navigate href="{{ route('dashboard.executive') }}"
-                    class="sidebar-link {{ request()->routeIs('dashboard.executive') ? 'active' : '' }}"><span
-                        class="text-lg">◒</span> Proyección financiera</a>
-                <a wire:navigate href="{{ route('financial-agenda.index') }}"
-                            class="sidebar-link {{ request()->routeIs('financial-agenda.index', 'financial-agenda.beneficiaries.*', 'financial-agenda.commitments.*') ? 'active' : '' }}"><span
-                            class="text-lg">◷</span>Gestión de Compromisos</a>
-                <a wire:navigate href="{{ route('financial-agenda.cards.dashboard') }}"
-                            class="sidebar-link {{ request()->routeIs('financial-agenda.cards.*') ? 'active' : '' }}"><span
-                            class="text-lg">💳</span>Tarjetas</a>
-                <a wire:navigate href="{{ route('breaks.dashboard') }}"
-                    class="sidebar-link {{ request()->routeIs('breaks.*') ? 'active' : '' }}"><span
-                        class="text-lg">◌</span> Descansos activos</a>
-                <div class="mt-5 border-t border-line pt-4"><p class="px-3 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted">Comercial</p>
-                    <a wire:navigate href="{{ route('commercial.dashboard') }}" class="sidebar-link {{ request()->routeIs('commercial.dashboard') ? 'active' : '' }}"><span class="text-lg">◉</span> Dashboard</a>
-                    <a wire:navigate href="{{ route('commercial.quotes.index') }}" class="sidebar-link {{ request()->routeIs('commercial.quotes.*') ? 'active' : '' }}"><span class="text-lg">◇</span> Cotizaciones</a>
+                <div>
+                    <p class="px-3 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted">Operación diaria</p>
+                    <a wire:navigate href="{{ route('dashboard') }}" class="sidebar-link {{ request()->routeIs('dashboard') || request()->routeIs('dashboard.follow-up') ? 'active' : '' }}"><span class="text-lg">⌂</span> Seguimiento de hoy</a>
+                    <a wire:navigate href="{{ route('charges.index') }}" class="sidebar-link {{ request()->routeIs('charges.*') || request()->routeIs('payments.*') ? 'active' : '' }}"><span class="text-lg">▣</span> Cobranza</a>
+                    <a wire:navigate href="{{ route('tasks.index') }}" class="sidebar-link {{ request()->routeIs('tasks.*') ? 'active' : '' }}"><span class="text-lg">✓</span> Agenda</a>
                     <a wire:navigate href="{{ route('commercial.invoices.index') }}" class="sidebar-link {{ request()->routeIs('commercial.invoices.*') ? 'active' : '' }}"><span class="text-lg">▧</span> Facturas</a>
+                    <a wire:navigate href="{{ route('gestions.index') }}" class="sidebar-link {{ request()->routeIs('gestions.*') ? 'active' : '' }}"><span class="text-lg">✦</span> Gestiones</a>
+                </div>
+
+                <div class="mt-5 border-t border-line pt-4">
+                    <p class="px-3 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted">Clientes y servicios</p>
+                    <a wire:navigate href="{{ route('clients.index') }}" class="sidebar-link {{ request()->routeIs('clients.*') ? 'active' : '' }}"><span class="text-lg">♙</span> Clientes</a>
+                    <a wire:navigate href="{{ route('contracted-services.index') }}" class="sidebar-link {{ request()->routeIs('contracted-services.*') ? 'active' : '' }}"><span class="text-lg">◫</span> Servicios contratados</a>
+                    <a wire:navigate href="{{ route('catalog-services.index') }}" class="sidebar-link {{ request()->routeIs('catalog-services.*') ? 'active' : '' }}"><span class="text-lg">▤</span> Catálogo de servicios</a>
+                    <a wire:navigate href="{{ route('providers.index') }}" class="sidebar-link {{ request()->routeIs('providers.*') || request()->routeIs('provider-invoices.*') ? 'active' : '' }}"><span class="text-lg">⌘</span> Proveedores</a>
+                </div>
+
+                <div class="mt-5 border-t border-line pt-4">
+                    <p class="px-3 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted">Finanzas</p>
+                    <a wire:navigate href="{{ route('dashboard.executive') }}" class="sidebar-link {{ request()->routeIs('dashboard.executive') ? 'active' : '' }}"><span class="text-lg">◒</span> Proyección financiera</a>
+                    <a wire:navigate href="{{ route('financial-agenda.index') }}" class="sidebar-link {{ request()->routeIs('financial-agenda.index', 'financial-agenda.beneficiaries.*', 'financial-agenda.commitments.*') ? 'active' : '' }}"><span class="text-lg">◷</span> Gestión de compromisos</a>
+                    <a wire:navigate href="{{ route('financial-agenda.cards.dashboard') }}" class="sidebar-link {{ request()->routeIs('financial-agenda.cards.*') ? 'active' : '' }}"><span class="text-lg">💳</span> Tarjetas</a>
                     <a wire:navigate href="{{ route('commercial.unplanned-expenses.dashboard') }}" class="sidebar-link {{ request()->routeIs('commercial.unplanned-expenses.*') ? 'active' : '' }}"><span class="text-lg">⌁</span> Gastos hormiga</a>
                 </div>
-                <a wire:navigate href="{{ route('settings.company.edit') }}" class="sidebar-link {{ request()->routeIs('settings.*') ? 'active' : '' }}"><span class="text-lg">⚙</span> Configuración</a>
+
+                <div class="mt-5 border-t border-line pt-4">
+                    <p class="px-3 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted">Comercial</p>
+                    <a wire:navigate href="{{ route('commercial.dashboard') }}" class="sidebar-link {{ request()->routeIs('commercial.dashboard') ? 'active' : '' }}"><span class="text-lg">◉</span> Dashboard</a>
+                    <a wire:navigate href="{{ route('commercial.quotes.index') }}" class="sidebar-link {{ request()->routeIs('commercial.quotes.*') ? 'active' : '' }}"><span class="text-lg">◇</span> Cotizaciones</a>
+                </div>
+
+                <div class="mt-5 border-t border-line pt-4">
+                    <p class="px-3 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted">Herramientas</p>
+                    <a wire:navigate href="{{ route('notebooks.index') }}" class="sidebar-link {{ request()->routeIs('notebooks.*') ? 'active' : '' }}"><span class="text-lg">✎</span> Cuadernos</a>
+                    <a wire:navigate href="{{ route('dashboard.operational') }}" class="sidebar-link {{ request()->routeIs('dashboard.operational') ? 'active' : '' }}"><span class="text-lg">▣</span> Panel operativo</a>
+                    <a wire:navigate href="{{ route('breaks.dashboard') }}" class="sidebar-link {{ request()->routeIs('breaks.*') ? 'active' : '' }}"><span class="text-lg">◌</span> Descansos activos</a>
+                </div>
+
+                <div class="mt-5 border-t border-line pt-4">
+                    <p class="px-3 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted">Sistema</p>
+                    <a wire:navigate href="{{ route('settings.company.edit') }}" class="sidebar-link {{ request()->routeIs('settings.*') ? 'active' : '' }}"><span class="text-lg">⚙</span> Configuración</a>
+                </div>
             </nav>
             <div class="mt-auto border-t border-line pt-4">
                 @auth
