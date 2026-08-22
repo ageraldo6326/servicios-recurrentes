@@ -126,6 +126,7 @@ class FollowUp extends Component
                 $service->setAttribute('follow_up_priority', $this->followUpPriority($service));
                 $service->setAttribute('billing_date', $this->billingDate($service));
                 $service->setAttribute('overdue_days', $this->overdueDays($service));
+                $service->setAttribute('days_until_billing', $this->daysUntilBilling($service));
 
                 return $service;
             })
@@ -263,6 +264,11 @@ class FollowUp extends Component
         }
 
         return $dueDate?->diffInDays($today) ?? 0;
+    }
+
+    private function daysUntilBilling(ContractedService $service): int
+    {
+        return (int) $this->evaluationNow()->startOfDay()->diffInDays($this->billingDate($service));
     }
 
     private function types(): array

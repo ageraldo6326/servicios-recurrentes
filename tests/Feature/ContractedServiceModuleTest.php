@@ -203,6 +203,7 @@ class ContractedServiceModuleTest extends TestCase
         $this->get(route('dashboard'))
             ->assertOk()
             ->assertSee('Próximo vencimiento')
+            ->assertSee('Faltan 7 días para el cobro')
             ->assertSee($client->name);
 
         CompanySetting::query()->update(['upcoming_due_days' => 6]);
