@@ -21,7 +21,8 @@ final class FinancialHistoryService
      * @return array{
      *     points: array<int, array<string, float|string>,
      *     totals: array{recurring: float, invoices: float, income: float, commitments: float, unplanned: float, expenses: float, net: float},
-     *     unconverted_expenses_dop: float
+     *     unconverted_expenses_dop: float,
+     *     chart: array{width: int, height: int, baseline: int}
      * }
      */
     public function report(CarbonImmutable $from, CarbonImmutable $to, ?float $expenseExchangeRate): array
@@ -82,15 +83,34 @@ final class FinancialHistoryService
             return $point;
         });
 
+        $chart = [
+            'width' => max(720, $points->count() * 64),
+            'height' => 250,
+            'baseline' => 204,
+        ];
         $scale = max(1, (float) $points->max(fn (array $point): float => max($point['income'], $point['expenses'])));
-        $points = $points->map(function (array $point) use ($scale): array {
-            $point['income_height'] = round(($point['income'] / $scale) * 100, 2);
-            $point['expense_height'] = round(($point['expenses'] / $scale) * 100, 2);
-            $point['recurring_share'] = $point['income'] === 0.0 ? 0.0 : round(($point['recurring'] / $point['income']) * 100, 2);
-            $point['invoice_share'] = $point['income'] === 0.0 ? 0.0 : round(($point['invoices'] / $point['income']) * 100, 2);
+        $slotWidth = $chart['width'] / max(1, $points->count());
+        $points = $points->values()->map(function (array $point, int $index) use ($scale, $slotWidth, $chart): array {
+            $incomeHeight = round(($point['income'] / $scale) * 174, 2);
+            $expenseHeight = round(($point['expenses'] / $scale) * 174, 2);
+            $recurringHeight = $point['income'] === 0.0 ? 0.0 : round(($point['recurring'] / $point['income']) * $incomeHeight, 2);
+            $invoiceHeight = $incomeHeight - $recurringHeight;
+            $center = round(($index * $slotWidth) + ($slotWidth / 2), 2);
+
+            $point['chart_income_x'] = $center - 16;
+            $point['chart_expense_x'] = $center + 4;
+            $point['chart_income_y'] = $chart['baseline'] - $incomeHeight;
+            $point['chart_expense_y'] = $chart['baseline'] - $expenseHeight;
+            $point['chart_recurring_y'] = $chart['baseline'] - $recurringHeight;
+            $point['chart_invoice_y'] = $point['chart_income_y'];
+            $point['chart_income_height'] = $incomeHeight;
+            $point['chart_expense_height'] = $expenseHeight;
+            $point['chart_recurring_height'] = $recurringHeight;
+            $point['chart_invoice_height'] = $invoiceHeight;
+            $point['chart_label_x'] = $center;
 
             return $point;
-        })->values()->all();
+        })->all();
 
         return [
             'points' => $points,
@@ -104,6 +124,7 @@ final class FinancialHistoryService
                 'net' => (float) collect($points)->sum('net'),
             ],
             'unconverted_expenses_dop' => $unconvertedExpensesDop,
+            'chart' => $chart,
         ];
     }
 

@@ -74,6 +74,8 @@ final class FinancialHistoryDashboardTest extends TestCase
         $this->assertSame(20.0, $january['commitments']);
         $this->assertSame(5.0, $january['unplanned']);
         $this->assertSame(625.0, $january['net']);
+        $this->assertGreaterThan(0, $january['chart_income_height']);
+        $this->assertGreaterThan(0, $january['chart_expense_height']);
     }
 
     public function test_authenticated_user_can_view_cash_flow_dashboard(): void
@@ -85,6 +87,7 @@ final class FinancialHistoryDashboardTest extends TestCase
             ->assertOk()
             ->assertSee('Flujo histórico')
             ->assertSee('Ingresos vs. egresos')
-            ->assertSee('DOP 50.0000 por USD');
+            ->assertSee('DOP 50.0000 por USD')
+            ->assertSee('data-chart-bar="recurring"', false);
     }
 }

@@ -40,24 +40,21 @@
             </div>
         </div>
         <div class="overflow-x-auto px-5 pb-4 pt-6 sm:px-6">
-            <div class="min-w-[640px]">
-                <div class="flex h-60 items-end gap-3 border-b border-line/80">
-                    @foreach ($report['points'] as $point)
-                        <div class="flex min-w-0 flex-1 items-end justify-center gap-1" title="{{ $point['label'] }}: ingresos USD {{ number_format($point['income'], 2) }} · egresos USD {{ number_format($point['expenses'], 2) }}">
-                            <div class="flex w-4 flex-col-reverse overflow-hidden rounded-t-sm bg-brand/10" style="height: {{ $point['income_height'] }}%">
-                                <span class="block bg-brand" style="height: {{ $point['recurring_share'] }}%"></span>
-                                <span class="block bg-cyan-500" style="height: {{ $point['invoice_share'] }}%"></span>
-                            </div>
-                            <div class="w-4 rounded-t-sm bg-orange-400" style="height: {{ $point['expense_height'] }}%"></div>
-                        </div>
-                    @endforeach
-                </div>
-                <div class="mt-3 flex gap-3">
-                    @foreach ($report['points'] as $point)
-                        <div class="min-w-0 flex-1 text-center"><p class="text-[10px] font-bold text-muted">{{ $point['label'] }}</p><p class="mt-1 text-[10px] font-black {{ $point['net'] >= 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-600 dark:text-red-300' }}">{{ $point['net'] >= 0 ? '+' : '' }}{{ number_format($point['net'] / 1000, 1) }}k</p></div>
-                    @endforeach
-                </div>
-            </div>
+            <svg viewBox="0 0 {{ $report['chart']['width'] }} {{ $report['chart']['height'] }}" height="250" role="img"
+                aria-label="Gráfico de barras de ingresos y egresos por mes" class="block h-[250px] min-w-[720px] w-full"
+                style="min-width: {{ $report['chart']['width'] }}px">
+                <line x1="0" y1="{{ $report['chart']['baseline'] }}" x2="{{ $report['chart']['width'] }}" y2="{{ $report['chart']['baseline'] }}" stroke="#d9deea" stroke-width="1" />
+                @foreach ($report['points'] as $point)
+                    <g>
+                        <title>{{ $point['label'] }}: ingresos USD {{ number_format($point['income'], 2) }} · egresos USD {{ number_format($point['expenses'], 2) }}</title>
+                        <rect data-chart-bar="recurring" x="{{ $point['chart_income_x'] }}" y="{{ $point['chart_recurring_y'] }}" width="12" height="{{ $point['chart_recurring_height'] }}" rx="2" fill="#087d74" />
+                        <rect data-chart-bar="invoices" x="{{ $point['chart_income_x'] }}" y="{{ $point['chart_invoice_y'] }}" width="12" height="{{ $point['chart_invoice_height'] }}" rx="2" fill="#06b6d4" />
+                        <rect data-chart-bar="expenses" x="{{ $point['chart_expense_x'] }}" y="{{ $point['chart_expense_y'] }}" width="12" height="{{ $point['chart_expense_height'] }}" rx="2" fill="#fb923c" />
+                        <text x="{{ $point['chart_label_x'] }}" y="224" text-anchor="middle" font-size="10" font-weight="700" fill="#687386">{{ $point['label'] }}</text>
+                        <text x="{{ $point['chart_label_x'] }}" y="241" text-anchor="middle" font-size="9" font-weight="800" fill="{{ $point['net'] >= 0 ? '#087d74' : '#dc2626' }}">{{ $point['net'] >= 0 ? '+' : '' }}{{ number_format($point['net'] / 1000, 1) }}k</text>
+                    </g>
+                @endforeach
+            </svg>
         </div>
     </section>
 
