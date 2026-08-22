@@ -17,33 +17,42 @@
             hasQueuedSave: false,
             savedOrder: '',
             saveError: false,
+            pointerId: null,
+            pointerMoveHandler: null,
+            pointerEndHandler: null,
 
             init() {
                 this.savedOrder = this.currentOrder();
+                this.pointerMoveHandler = (event) => this.pointerMove(event);
+                this.pointerEndHandler = (event) => this.pointerEnd(event);
+                window.addEventListener('pointermove', this.pointerMoveHandler, { passive: false });
+                window.addEventListener('pointerup', this.pointerEndHandler);
+                window.addEventListener('pointercancel', this.pointerEndHandler);
             },
 
-            start(event, key) {
-                this.draggingKey = key;
-                event.dataTransfer?.setData('text/plain', key);
-
-                if (event.dataTransfer) {
-                    event.dataTransfer.effectAllowed = 'move';
-                }
+            destroy() {
+                window.removeEventListener('pointermove', this.pointerMoveHandler);
+                window.removeEventListener('pointerup', this.pointerEndHandler);
+                window.removeEventListener('pointercancel', this.pointerEndHandler);
             },
 
-            touchStart(event, key) {
-                if (event.touches.length === 1) {
-                    this.draggingKey = key;
-                }
-            },
-
-            touchMove(event) {
-                if (!this.draggingKey) {
+            startPointer(event, key) {
+                if (event.isPrimary === false || (event.pointerType === 'mouse' && event.button !== 0)) {
                     return;
                 }
 
-                const touch = event.touches[0];
-                const targetItem = document.elementFromPoint(touch.clientX, touch.clientY)
+                this.draggingKey = key;
+                this.pointerId = event.pointerId;
+                this.saveError = false;
+                event.currentTarget.setPointerCapture?.(event.pointerId);
+            },
+
+            pointerMove(event) {
+                if (!this.draggingKey || this.pointerId !== event.pointerId) {
+                    return;
+                }
+
+                const targetItem = document.elementFromPoint(event.clientX, event.clientY)
                     ?.closest('[data-menu-item-key]');
 
                 if (!targetItem || !this.$el.contains(targetItem)) {
@@ -51,7 +60,16 @@
                 }
 
                 event.preventDefault();
-                this.move({ clientY: touch.clientY }, targetItem.dataset.menuItemKey);
+                this.move(event, targetItem.dataset.menuItemKey);
+            },
+
+            pointerEnd(event) {
+                if (this.pointerId !== event.pointerId) {
+                    return;
+                }
+
+                this.pointerId = null;
+                this.finish();
             },
 
             move(event, targetKey) {
@@ -157,24 +175,19 @@
                 @foreach ($sidebarSections as $section)
                     <div class="{{ $loop->first ? '' : 'mt-5 border-t border-line pt-4' }}"
                         x-data="sidebarMenuOrder(@js($section['key']), @js(route('settings.sidebar-menu-order.update')), @js(csrf_token()))"
-                        x-init="init()"
-                        @touchmove="touchMove($event)"
-                        @touchend="finish()"
-                        @touchcancel="finish()">
+                        x-init="init()">
                         <p class="px-3 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted">{{ $section['label'] }}</p>
                         @foreach ($section['items'] as $item)
                             <a wire:navigate href="{{ route($item['route']) }}"
                                 class="sidebar-link {{ request()->routeIs(...$item['active']) ? 'active' : '' }}"
-                                draggable="true"
                                 data-menu-item-key="{{ $item['key'] }}"
-                                @dragstart="start($event, @js($item['key']))"
-                                @dragover.prevent="move($event, @js($item['key']))"
-                                @drop.prevent="finish()"
-                                @dragend="finish()"
                                 :class="{ 'opacity-60': draggingKey === @js($item['key']) }">
                                 <span class="text-lg">{{ $item['icon'] }}</span>
                                 <span>{{ $item['label'] }}</span>
-                                <span class="ml-auto cursor-grab touch-none select-none text-base leading-none text-muted active:cursor-grabbing" aria-hidden="true" title="Arrastrar para reordenar" @touchstart.prevent.stop="touchStart($event, @js($item['key']))">⠿</span>
+                                <span class="ml-auto cursor-grab touch-none select-none text-base leading-none text-muted active:cursor-grabbing"
+                                    aria-hidden="true" title="Arrastrar para reordenar"
+                                    @pointerdown.prevent.stop="startPointer($event, @js($item['key']))"
+                                    @click.prevent.stop>⠿</span>
                             </a>
                         @endforeach
                         <p x-cloak x-show="isSaving" class="px-3 pt-2 text-xs font-semibold text-brand" aria-live="polite">Guardando orden…</p>

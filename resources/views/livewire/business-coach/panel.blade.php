@@ -1,29 +1,16 @@
 <div x-data="{
     copied: false,
-    requesting: false,
-    progress: 0,
-    progressTimer: null,
     startAnalysis(force = false) {
-        this.requesting = true;
-        this.progress = 8;
-        clearInterval(this.progressTimer);
-        this.progressTimer = setInterval(() => {
-            if (this.progress < 92) this.progress += 3;
-        }, 500);
-        Promise.resolve(force ? this.$wire.forceAnalyze() : this.$wire.analyze()).finally(() => {
-            clearInterval(this.progressTimer);
-            this.progress = 100;
-            setTimeout(() => { this.requesting = false; this.progress = 0; }, 350);
-        });
+        return force ? this.$wire.forceAnalyze() : this.$wire.analyze();
     }
 }"
     x-on:business-coach-analyze.window="$event.detail?.force === true ? startAnalysis(true) : startAnalysis()"
     x-init="document.addEventListener('livewire:navigated', () => { copied = false; $wire.resetForNavigation(window.location.pathname) })">
-    <div x-show="requesting" x-transition.opacity
+    <div wire:loading.flex wire:target="analyze,forceAnalyze"
         class="fixed inset-x-0 top-0 z-[70] border-b border-brand/20 bg-surface/95 shadow-card backdrop-blur"
         aria-live="polite" aria-label="Procesando análisis">
         <div class="h-1 w-full bg-brand/10">
-            <div class="h-1 bg-brand transition-all duration-500 ease-out" :style="`width: ${progress}%`"></div>
+            <div class="h-1 w-full origin-left animate-pulse bg-brand"></div>
         </div>
         <div class="flex items-center justify-center gap-3 px-5 py-3 text-sm font-bold text-brand">
             <span class="h-4 w-4 animate-spin rounded-full border-2 border-brand/25 border-t-brand"
