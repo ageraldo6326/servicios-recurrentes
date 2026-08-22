@@ -5,7 +5,7 @@
     class="relative flex min-w-0 items-center">
     <div class="flex min-w-0 items-center gap-2">
         @if ($status === 'working' && $enabled)
-            <div class="inline-flex h-10 max-w-[220px] items-center gap-2 rounded-xl border border-line bg-surface px-3 text-sm font-bold text-ink shadow-sm">
+            <div class="inline-flex h-10 max-w-[150px] items-center gap-2 rounded-xl border border-line bg-surface px-3 text-sm font-bold text-ink shadow-sm sm:max-w-[220px]">
                 <span class="text-brand">◷</span>
                 <span class="truncate">Trabajo <span class="tabular-nums text-brand" x-text="Math.floor(remaining / 60).toString().padStart(2, '0') + ':' + (remaining % 60).toString().padStart(2, '0')">{{ gmdate('i:s', $remainingSeconds) }}</span></span>
             </div>
@@ -17,15 +17,15 @@
     </div>
 
     @if ($enabled)
-        <div class="ml-2 flex min-w-0 max-w-full items-center gap-1.5 rounded-xl border border-line bg-surface/95 p-1.5 shadow-sm backdrop-blur">
+        <div class="ml-1 flex min-w-0 max-w-full items-center gap-1.5 rounded-xl border border-line bg-surface/95 p-1 shadow-sm backdrop-blur sm:ml-2 sm:p-1.5">
             @if ($status === 'working')
-                <button type="button" wire:click="pauseWork" class="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 text-[11px] font-black text-amber-800 transition hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200 sm:px-3" aria-label="Pausar contador" title="Pausar contador"><span aria-hidden="true">⏸</span><span>Pausar</span></button>
+                <button type="button" wire:click="pauseWork" class="inline-flex h-9 w-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 text-[11px] font-black text-amber-800 transition hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200 sm:w-auto sm:px-3" aria-label="Pausar contador" title="Pausar contador"><span aria-hidden="true">⏸</span><span class="hidden sm:inline">Pausar</span></button>
             @elseif ($status === 'paused')
-                <button type="button" wire:click="resumeWork" class="button h-9 px-2.5 text-[11px] sm:px-3">▶ Reanudar</button>
+                <button type="button" wire:click="resumeWork" class="button h-9 w-9 px-0 text-[11px] sm:w-auto sm:px-3" aria-label="Reanudar trabajo" title="Reanudar trabajo">▶<span class="ml-1 hidden sm:inline">Reanudar</span></button>
             @elseif (in_array($status, ['break_completed', 'break_cancelled', 'work_pending'], true))
-                <button type="button" x-on:click="window.enableBreakAudio?.()" wire:click="startWork" class="button h-9 px-2.5 text-[11px] sm:px-3">▶ Trabajar</button>
+                <button type="button" x-on:click="window.enableBreakAudio?.()" wire:click="startWork" class="button h-9 w-9 px-0 text-[11px] sm:w-auto sm:px-3" aria-label="Iniciar trabajo" title="Iniciar trabajo">▶<span class="ml-1 hidden sm:inline">Trabajar</span></button>
             @else
-                <button type="button" x-on:click="window.enableBreakAudio?.()" wire:click="startWork" class="button h-9 px-2.5 text-[11px] sm:px-3">▶ Iniciar pausas</button>
+                <button type="button" x-on:click="window.enableBreakAudio?.()" wire:click="startWork" class="button h-9 w-9 px-0 text-[11px] sm:w-auto sm:px-3" aria-label="Iniciar pausas" title="Iniciar pausas">▶<span class="ml-1 hidden sm:inline">Iniciar pausas</span></button>
             @endif
             @if ($soundOnBreak || $soundOnReturn)
                 <button type="button" x-on:click="window.enableBreakAudio?.(); $el.setAttribute('aria-label', 'Sonido activado'); $el.textContent = '🔊'" class="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-line bg-surface text-sm text-muted transition hover:border-brand hover:text-brand" aria-label="Activar sonido de pausas" title="Activar sonido de pausas">🔈</button>

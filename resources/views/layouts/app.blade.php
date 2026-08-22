@@ -110,9 +110,9 @@
                         </div>
                         <livewire:tasks.global-reminder />
                     @endauth
-                    <div class="ml-auto flex items-center gap-2">
+                    <div class="ml-auto flex shrink-0 items-center gap-2">
                         <button type="button" x-on:click="$dispatch('business-coach-analyze')" wire:loading.attr="disabled"
-                            class="button-secondary" aria-label="Analizar pantalla">
+                            class="button-secondary hidden sm:inline-flex" aria-label="Analizar pantalla">
                             <span class="mr-2">🧠</span> Analizar
                         </button>
                         <div x-data="{
@@ -157,7 +157,7 @@
                             x-init="setInterval(() => now = new Date(), 1000)"
                             @click.outside="open = false"
                             @keydown.escape.window="open = false"
-                            class="relative">
+                            class="relative hidden sm:block">
                             <button type="button" @click="open = !open"
                                 class="inline-flex h-10 items-center gap-2 rounded-xl border border-line bg-surface px-3 text-sm font-bold tabular-nums text-ink transition hover:border-brand hover:text-brand"
                                 aria-live="polite" aria-label="Abrir calendario y ver la hora actual"
