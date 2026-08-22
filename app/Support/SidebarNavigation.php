@@ -93,6 +93,7 @@ final class SidebarNavigation
                 'label' => 'Finanzas',
                 'items' => [
                     ['key' => 'financial-projection', 'route' => 'dashboard.executive', 'active' => ['dashboard.executive'], 'icon' => '◒', 'label' => 'Proyección financiera'],
+                    ['key' => 'cash-flow', 'route' => 'dashboard.cash-flow', 'active' => ['dashboard.cash-flow'], 'icon' => '▥', 'label' => 'Flujo histórico'],
                     ['key' => 'credit-cards', 'route' => 'financial-agenda.cards.dashboard', 'active' => ['financial-agenda.cards.*'], 'icon' => '💳', 'label' => 'Tarjetas'],
                     ['key' => 'unplanned-expenses', 'route' => 'commercial.unplanned-expenses.dashboard', 'active' => ['commercial.unplanned-expenses.*'], 'icon' => '⌁', 'label' => 'Gastos hormiga'],
                 ],

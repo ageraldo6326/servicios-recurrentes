@@ -24,6 +24,7 @@ use App\Livewire\Charges\Index as ChargesIndex;
 use App\Livewire\Clients\Index as ClientsIndex;
 use App\Livewire\ContractedServices\Index as ContractedServicesIndex;
 use App\Livewire\Dashboard\FollowUp;
+use App\Livewire\Dashboard\CashFlow;
 use App\Livewire\FinancialAgenda\Beneficiaries\Index as BeneficiariesIndex;
 use App\Livewire\FinancialAgenda\Commitments\Index as CommitmentsIndex;
 use App\Livewire\FinancialAgenda\CreditCardsDashboard;
@@ -42,6 +43,7 @@ Route::middleware(['auth'])->group(function (): void {
     Route::get('/dashboard/seguimiento', FollowUp::class)->name('dashboard.follow-up');
     Route::get('/dashboard/operativo', [DashboardController::class, 'operational'])->name('dashboard.operational');
     Route::get('/dashboard/ejecutivo', [DashboardController::class, 'executive'])->name('dashboard.executive');
+    Route::get('/dashboard/flujo-historico', CashFlow::class)->name('dashboard.cash-flow');
 
     Route::get('clients', ClientsIndex::class)->name('clients.index');
     Route::get('cuadernos', NotebooksWorkspace::class)->name('notebooks.index');
