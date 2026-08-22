@@ -1,5 +1,128 @@
 import './bootstrap';
 
+window.sidebarMenuOrder = (section, updateUrl, csrfToken) => ({
+    draggingKey: null,
+    isSaving: false,
+    hasQueuedSave: false,
+    savedOrder: '',
+    saveError: false,
+
+    init() {
+        this.savedOrder = this.currentOrder();
+    },
+
+    start(event, key) {
+        this.draggingKey = key;
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', key);
+    },
+
+    touchStart(event, key) {
+        if (event.touches.length !== 1) {
+            return;
+        }
+
+        this.draggingKey = key;
+    },
+
+    touchMove(event) {
+        if (!this.draggingKey) {
+            return;
+        }
+
+        const touch = event.touches[0];
+        const targetItem = document.elementFromPoint(touch.clientX, touch.clientY)
+            ?.closest('[data-menu-item-key]');
+
+        if (!targetItem || !this.$el.contains(targetItem)) {
+            return;
+        }
+
+        event.preventDefault();
+        this.move({ clientY: touch.clientY }, targetItem.dataset.menuItemKey);
+    },
+
+    move(event, targetKey) {
+        if (!this.draggingKey || this.draggingKey === targetKey) {
+            return;
+        }
+
+        const draggedItem = this.item(this.draggingKey);
+        const targetItem = this.item(targetKey);
+
+        if (!draggedItem || !targetItem) {
+            return;
+        }
+
+        const targetBounds = targetItem.getBoundingClientRect();
+        const insertBeforeTarget = event.clientY < targetBounds.top + (targetBounds.height / 2);
+
+        targetItem.parentNode.insertBefore(draggedItem, insertBeforeTarget ? targetItem : targetItem.nextSibling);
+    },
+
+    finish() {
+        if (!this.draggingKey) {
+            return;
+        }
+
+        this.draggingKey = null;
+        this.save();
+    },
+
+    item(key) {
+        return this.$el.querySelector(`[data-menu-item-key="${key}"]`);
+    },
+
+    currentOrder() {
+        return JSON.stringify([...this.$el.querySelectorAll('[data-menu-item-key]')]
+            .map((item) => item.dataset.menuItemKey));
+    },
+
+    async save() {
+        const order = this.currentOrder();
+
+        if (order === this.savedOrder) {
+            return;
+        }
+
+        if (this.isSaving) {
+            this.hasQueuedSave = true;
+
+            return;
+        }
+
+        this.isSaving = true;
+        this.saveError = false;
+
+        try {
+            const response = await fetch(updateUrl, {
+                method: 'PUT',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+                body: JSON.stringify({ section, order: JSON.parse(order) }),
+            });
+
+            if (!response.ok) {
+                throw new Error('No se pudo guardar el orden del menú.');
+            }
+
+            this.savedOrder = order;
+        } catch (error) {
+            this.saveError = true;
+        } finally {
+            this.isSaving = false;
+
+            if (this.hasQueuedSave) {
+                this.hasQueuedSave = false;
+                this.save();
+            }
+        }
+    },
+});
+
 window.notebookEditor = (pageId, version, title, html) => ({
     pageId,
     version,

@@ -16,6 +16,7 @@ use App\Http\Controllers\NotebookAttachmentController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProviderController;
 use App\Http\Controllers\ProviderInvoiceController;
+use App\Http\Controllers\SidebarMenuOrderController;
 use App\Livewire\Actions\Logout;
 use App\Livewire\Breaks\Dashboard as BreaksDashboard;
 use App\Livewire\CatalogServices\Index as CatalogServicesIndex;
@@ -94,6 +95,7 @@ Route::middleware(['auth'])->group(function (): void {
     Route::get('configuracion/empresa', [CompanySettingController::class, 'edit'])->name('settings.company.edit');
     Route::put('configuracion/empresa', [CompanySettingController::class, 'update'])->name('settings.company.update');
     Route::get('configuracion/empresa/logo', [CompanySettingController::class, 'logo'])->name('settings.company.logo');
+    Route::put('configuracion/menu/orden', [SidebarMenuOrderController::class, 'update'])->name('settings.sidebar-menu-order.update');
 
     Route::prefix('financial-agenda')->name('financial-agenda.')->group(function (): void {
         Route::get('/', FinancialAgendaDashboard::class)->name('index');
