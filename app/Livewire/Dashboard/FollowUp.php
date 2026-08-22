@@ -20,6 +20,8 @@ class FollowUp extends Component
 {
     private ?CarbonImmutable $evaluationNow = null;
 
+    private ?int $upcomingDueDays = null;
+
     #[Url]
     public string $search = '';
 
@@ -183,7 +185,7 @@ class FollowUp extends Component
             return 'second_contact';
         }
 
-        if ($billingCyclePending && $billingDate->between($today->copy()->addDay(), $today->copy()->addDays(3))) {
+        if ($billingCyclePending && $billingDate->between($today->copy()->addDay(), $today->copy()->addDays($this->upcomingDueDays()))) {
             return 'upcoming';
         }
 
@@ -281,6 +283,11 @@ class FollowUp extends Component
     private function evaluationNow(): CarbonImmutable
     {
         return $this->evaluationNow ??= CarbonImmutable::now(CompanySetting::configuredTimezone());
+    }
+
+    private function upcomingDueDays(): int
+    {
+        return $this->upcomingDueDays ??= CompanySetting::configuredUpcomingDueDays();
     }
 
     private function resetPageIfNeeded(): void

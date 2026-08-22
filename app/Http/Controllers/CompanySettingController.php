@@ -32,6 +32,7 @@ class CompanySettingController extends Controller
             'tax_id' => ['nullable', 'string', 'max:100'],
             'logo' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,svg', 'max:2048'],
             'timezone' => ['required', Rule::in(timezone_identifiers_list())],
+            'upcoming_due_days' => ['required', 'integer', 'min:1', 'max:255'],
         ]);
 
         unset($data['logo']);

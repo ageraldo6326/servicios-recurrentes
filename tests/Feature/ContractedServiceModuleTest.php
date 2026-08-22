@@ -186,6 +186,33 @@ class ContractedServiceModuleTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_follow_up_uses_the_configured_upcoming_due_days(): void
+    {
+        [$client, $catalogService, $provider] = $this->entities();
+        ContractedService::create([
+            ...$this->payload($client, $catalogService, $provider),
+            'billing_day' => 8,
+            'status' => ContractedServiceStatus::Active,
+        ]);
+        CompanySetting::create([
+            'timezone' => 'America/Santo_Domingo',
+            'upcoming_due_days' => 7,
+        ]);
+        Carbon::setTestNow(Carbon::parse('2026-08-01 12:00:00', 'America/Santo_Domingo'));
+
+        $this->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Próximo vencimiento')
+            ->assertSee($client->name);
+
+        CompanySetting::query()->update(['upcoming_due_days' => 6]);
+
+        $this->get(route('dashboard'))
+            ->assertOk()
+            ->assertDontSee($client->name);
+        Carbon::setTestNow();
+    }
+
     public function test_marking_a_service_as_paid_registers_payment_and_automatic_gestion(): void
     {
         [$client, $catalogService, $provider] = $this->entities();
