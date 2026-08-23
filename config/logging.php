@@ -73,6 +73,13 @@ return [
             'replace_placeholders' => true,
         ],
 
+        'security' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/security.log'),
+            'level' => env('SECURITY_LOG_LEVEL', 'info'),
+            'replace_placeholders' => true,
+        ],
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),

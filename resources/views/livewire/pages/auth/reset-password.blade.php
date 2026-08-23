@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\Security\LoginProtectionService;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
@@ -14,8 +15,11 @@ new #[Layout('layouts.guest')] class extends Component
 {
     #[Locked]
     public string $token = '';
+
     public string $email = '';
+
     public string $password = '';
+
     public string $password_confirmation = '';
 
     /**
@@ -31,8 +35,10 @@ new #[Layout('layouts.guest')] class extends Component
     /**
      * Reset the password for the given user.
      */
-    public function resetPassword(): void
+    public function resetPassword(LoginProtectionService $loginProtection): void
     {
+        $loginProtection->ensureIpIsNotBlocked(request());
+
         $this->validate([
             'token' => ['required'],
             'email' => ['required', 'string', 'email'],

@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\Security\LoginProtectionService;
 use Illuminate\Support\Facades\Password;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
@@ -11,8 +12,10 @@ new #[Layout('layouts.guest')] class extends Component
     /**
      * Send a password reset link to the provided email address.
      */
-    public function sendPasswordResetLink(): void
+    public function sendPasswordResetLink(LoginProtectionService $loginProtection): void
     {
+        $loginProtection->ensureIpIsNotBlocked(request());
+
         $this->validate([
             'email' => ['required', 'string', 'email'],
         ]);

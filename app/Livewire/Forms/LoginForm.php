@@ -2,10 +2,8 @@
 
 namespace App\Livewire\Forms;
 
-use Illuminate\Auth\Events\Lockout;
+use App\Services\Security\LoginProtectionService;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Validate;
 use Livewire\Form;
@@ -26,47 +24,22 @@ class LoginForm extends Form
      *
      * @throws ValidationException
      */
-    public function authenticate(): void
+    public function authenticate(LoginProtectionService $loginProtection): void
     {
-        $this->ensureIsNotRateLimited();
+        $loginProtection->ensureIpIsNotBlocked(request());
 
         if (! Auth::attempt($this->only(['email', 'password']), $this->remember)) {
-            RateLimiter::hit($this->throttleKey());
+            $loginProtection->recordFailedLogin(request(), $this->email);
 
             throw ValidationException::withMessages([
                 'form.email' => trans('auth.failed'),
             ]);
         }
 
-        RateLimiter::clear($this->throttleKey());
-    }
+        $user = Auth::user();
 
-    /**
-     * Ensure the authentication request is not rate limited.
-     */
-    protected function ensureIsNotRateLimited(): void
-    {
-        if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
-            return;
+        if ($user !== null) {
+            $loginProtection->recordSuccessfulLogin(request(), $user, $this->email);
         }
-
-        event(new Lockout(request()));
-
-        $seconds = RateLimiter::availableIn($this->throttleKey());
-
-        throw ValidationException::withMessages([
-            'form.email' => trans('auth.throttle', [
-                'seconds' => $seconds,
-                'minutes' => ceil($seconds / 60),
-            ]),
-        ]);
-    }
-
-    /**
-     * Get the authentication rate limiting throttle key.
-     */
-    protected function throttleKey(): string
-    {
-        return Str::transliterate(Str::lower($this->email).'|'.request()->ip());
     }
 }
