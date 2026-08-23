@@ -1,19 +1,42 @@
 <div>
-    <div class="mb-6 flex flex-col gap-4 lg:mb-8 lg:flex-row lg:items-end lg:justify-between">
+    <div class="mb-6 flex flex-col gap-4 xl:mb-8 xl:flex-row xl:items-end xl:justify-between">
         <div>
             <p class="mb-2 text-xs font-black uppercase tracking-[0.18em] text-brand">Visión financiera</p>
             <h1 class="text-2xl font-black tracking-tight text-ink sm:text-4xl">Flujo histórico</h1>
             <p class="mt-2 max-w-2xl text-sm text-muted">Compara los ingresos reales con los egresos pagados a través del tiempo.</p>
         </div>
-        <label class="w-full text-xs font-bold text-muted sm:w-52">
-            Período
-            <select wire:model.live="months" class="input mt-1">
-                <option value="6">Últimos 6 meses</option>
-                <option value="12">Últimos 12 meses</option>
-                <option value="24">Últimos 24 meses</option>
-                <option value="36">Últimos 36 meses</option>
-            </select>
-        </label>
+        <div class="grid w-full gap-3 sm:grid-cols-3 xl:w-auto xl:min-w-[38rem]">
+            <label class="text-xs font-bold text-muted">
+                Período
+                <select wire:model.live="months" @disabled($year !== null) class="input mt-1 disabled:cursor-not-allowed disabled:opacity-60">
+                    <option value="6">Últimos 6 meses</option>
+                    <option value="12">Últimos 12 meses</option>
+                    <option value="24">Últimos 24 meses</option>
+                    <option value="36">Últimos 36 meses</option>
+                </select>
+            </label>
+            <label class="text-xs font-bold text-muted">
+                Año
+                <select wire:model.live="year" class="input mt-1">
+                    <option value="">Sin filtro por año</option>
+                    @foreach ($years as $filterYear)
+                        <option value="{{ $filterYear }}">{{ $filterYear }}</option>
+                    @endforeach
+                </select>
+            </label>
+            <label class="text-xs font-bold text-muted">
+                Mes
+                <select wire:model.live="month" @disabled($year === null) class="input mt-1 disabled:cursor-not-allowed disabled:opacity-60">
+                    <option value="">Todo el año</option>
+                    @foreach ($monthOptions as $monthNumber => $monthName)
+                        <option value="{{ $monthNumber }}">{{ $monthName }}</option>
+                    @endforeach
+                </select>
+            </label>
+            @if ($year !== null)
+                <button type="button" wire:click="resetDateFilter" class="text-left text-xs font-bold text-brand underline underline-offset-4 sm:col-span-3">Ver período reciente</button>
+            @endif
+        </div>
     </div>
 
     <div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">

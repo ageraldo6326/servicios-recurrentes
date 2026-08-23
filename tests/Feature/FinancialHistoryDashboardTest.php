@@ -9,6 +9,7 @@ use App\Enums\CommitmentPaymentStatus;
 use App\Enums\FinancialCommitmentFrequency;
 use App\Enums\PaymentStatus;
 use App\Enums\UnplannedExpenseStatus;
+use App\Livewire\Dashboard\CashFlow;
 use App\Models\Beneficiary;
 use App\Models\Client;
 use App\Models\CommercialInvoice;
@@ -22,6 +23,7 @@ use App\Models\User;
 use App\Services\FinancialHistoryService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 final class FinancialHistoryDashboardTest extends TestCase
@@ -89,5 +91,37 @@ final class FinancialHistoryDashboardTest extends TestCase
             ->assertSee('Ingresos vs. egresos')
             ->assertSee('DOP 50.0000 por USD')
             ->assertSee('data-chart-bar="recurring"', false);
+    }
+
+    public function test_user_can_filter_cash_flow_by_a_specific_month_and_year(): void
+    {
+        CarbonImmutable::setTestNow('2026-08-23 12:00:00');
+
+        try {
+            $user = User::factory()->create();
+            Payment::query()->create(['amount' => 111, 'currency' => 'USD', 'received_at' => '2024-01-15', 'status' => PaymentStatus::Validated]);
+            Payment::query()->create(['amount' => 222, 'currency' => 'USD', 'received_at' => '2024-02-15', 'status' => PaymentStatus::Validated]);
+
+            $this->actingAs($user)
+                ->get(route('dashboard.cash-flow', ['year' => 2024, 'month' => 2]))
+                ->assertOk()
+                ->assertSee('02/2024 a 02/2024')
+                ->assertSee('USD 222.00')
+                ->assertDontSee('USD 111.00');
+
+            Livewire::actingAs($user)
+                ->test(CashFlow::class)
+                ->set('year', 2024)
+                ->assertSee('01/2024 a 12/2024')
+                ->set('month', 2)
+                ->assertSee('02/2024 a 02/2024')
+                ->assertSee('USD 222.00')
+                ->assertDontSee('USD 111.00')
+                ->call('resetDateFilter')
+                ->assertSet('year', null)
+                ->assertSet('month', null);
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
     }
 }
