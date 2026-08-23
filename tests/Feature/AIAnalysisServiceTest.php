@@ -57,6 +57,27 @@ class AIAnalysisServiceTest extends TestCase
         $this->assertSame(1, AiUsageLog::query()->count());
     }
 
+    public function test_it_loads_the_specialized_prompt_for_the_selected_analysis_type(): void
+    {
+        config(['services.openai.key' => 'test-key']);
+        Http::fake([
+            'https://api.openai.com/v1/responses' => Http::response(['output_text' => 'Análisis listo.']),
+        ]);
+        $user = User::factory()->create();
+
+        app(AIAnalysisService::class)->analyze(
+            $user,
+            'Ingresos proyectados: RD$ 20,000. Costos: RD$ 8,000.',
+            null,
+            AiAnalysisType::Financial,
+        );
+
+        Http::assertSent(fn ($request): bool => str_contains(
+            $request['instructions'],
+            '# Análisis financiero',
+        ));
+    }
+
     public function test_it_explains_that_privacy_acknowledgement_is_required_before_analyzing(): void
     {
         $user = User::factory()->create();
