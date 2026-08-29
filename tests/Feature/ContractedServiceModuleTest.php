@@ -267,6 +267,31 @@ class ContractedServiceModuleTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_follow_up_groups_a_clients_services_with_the_same_upcoming_billing_date(): void
+    {
+        $client = Client::create(['name' => 'Cliente agrupado', 'phone' => '8090000000']);
+        $this->createUpcomingService('Cliente externo', 30, null, 'Servicio central');
+        $this->createUpcomingService('Cliente agrupado', 30, null, 'Servicio Z', $client);
+        $this->createUpcomingService('Cliente agrupado', 30, null, 'Servicio A', $client);
+        CompanySetting::create([
+            'timezone' => 'America/Santo_Domingo',
+            'upcoming_due_days' => 7,
+        ]);
+        Carbon::setTestNow(Carbon::parse('2026-08-29 12:00:00', 'America/Santo_Domingo'));
+
+        $this->get(route('dashboard'))
+            ->assertOk()
+            ->assertSeeInOrder([
+                'Cliente agrupado',
+                'Servicio A',
+                'Cliente agrupado',
+                'Servicio Z',
+                'Cliente externo',
+            ]);
+
+        Carbon::setTestNow();
+    }
+
     public function test_marking_a_service_as_paid_registers_payment_and_automatic_gestion(): void
     {
         [$client, $catalogService, $provider] = $this->entities();
@@ -300,10 +325,10 @@ class ContractedServiceModuleTest extends TestCase
         ];
     }
 
-    private function createUpcomingService(string $clientName, int $billingDay, ?string $paidDueDate = null): void
+    private function createUpcomingService(string $clientName, int $billingDay, ?string $paidDueDate = null, string $catalogServiceName = 'PBX', ?Client $client = null): void
     {
-        $client = Client::create(['name' => $clientName, 'phone' => '8090000000']);
-        $catalogService = CatalogService::create(['name' => 'PBX', 'is_active' => true]);
+        $client ??= Client::create(['name' => $clientName, 'phone' => '8090000000']);
+        $catalogService = CatalogService::create(['name' => $catalogServiceName, 'is_active' => true]);
         $provider = Provider::create(['name' => 'Proveedor', 'payment_method' => 'Mensual']);
         $service = ContractedService::create([
             ...$this->payload($client, $catalogService, $provider),

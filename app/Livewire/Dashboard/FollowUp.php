@@ -135,11 +135,19 @@ class FollowUp extends Component
                 return [
                     $left->follow_up_priority,
                     $left->follow_up_type === 'upcoming' ? $left->days_until_billing : 0,
+                    $left->follow_up_type === 'upcoming' ? $left->client->name : '',
+                    $left->follow_up_type === 'upcoming' ? $left->client_id : 0,
+                    $left->follow_up_type === 'upcoming' ? $left->catalogService->name : '',
+                    $left->follow_up_type === 'upcoming' ? ($left->ip ?? '') : '',
                     -$left->created_at->timestamp,
                     $left->client->name,
                 ] <=> [
                     $right->follow_up_priority,
                     $right->follow_up_type === 'upcoming' ? $right->days_until_billing : 0,
+                    $right->follow_up_type === 'upcoming' ? $right->client->name : '',
+                    $right->follow_up_type === 'upcoming' ? $right->client_id : 0,
+                    $right->follow_up_type === 'upcoming' ? $right->catalogService->name : '',
+                    $right->follow_up_type === 'upcoming' ? ($right->ip ?? '') : '',
                     -$right->created_at->timestamp,
                     $right->client->name,
                 ];
