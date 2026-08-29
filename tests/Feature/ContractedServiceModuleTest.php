@@ -292,6 +292,45 @@ class ContractedServiceModuleTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_marking_a_promised_service_as_paid_removes_its_resolved_promise_from_follow_up(): void
+    {
+        [$client, $catalogService, $provider] = $this->entities();
+        $client->update(['name' => 'Cliente promesa pagada']);
+        $service = ContractedService::create([
+            ...$this->payload($client, $catalogService, $provider),
+            'billing_day' => 18,
+            'status' => ContractedServiceStatus::Active,
+        ]);
+        Gestion::create([
+            'client_id' => $client->id,
+            'contracted_service_id' => $service->id,
+            'type' => 'WhatsApp',
+            'occurred_at' => '2026-08-15 10:00:00',
+            'result' => 'Prometió pagar',
+            'promised_payment_date' => '2026-08-18',
+        ]);
+        CompanySetting::create([
+            'timezone' => 'America/Santo_Domingo',
+            'upcoming_due_days' => 7,
+        ]);
+        Carbon::setTestNow(Carbon::parse('2026-08-29 12:00:00', 'America/Santo_Domingo'));
+
+        $this->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Promesa vencida')
+            ->assertSee($client->name);
+
+        $this->post(route('contracted-services.mark-paid', $service))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->get(route('dashboard'))
+            ->assertOk()
+            ->assertDontSee($client->name);
+
+        Carbon::setTestNow();
+    }
+
     public function test_marking_a_service_as_paid_registers_payment_and_automatic_gestion(): void
     {
         [$client, $catalogService, $provider] = $this->entities();

@@ -7,6 +7,7 @@ use App\Enums\PaymentStatus;
 use App\Models\CatalogService;
 use App\Models\CompanySetting;
 use App\Models\ContractedService;
+use App\Models\Gestion;
 use App\Models\Provider;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
@@ -159,7 +160,7 @@ class FollowUp extends Component
     {
         $now = $this->evaluationNow();
         $today = $now->startOfDay();
-        $promise = $service->gestions->filter(fn ($gestion): bool => $gestion->promised_payment_date !== null)->sortByDesc('promised_payment_date')->first();
+        $promise = $this->activePromise($service);
         $latestGestion = $service->gestions->first();
         $billingDate = $this->billingDate($service);
         $billingCharge = $service->charges
@@ -208,6 +209,20 @@ class FollowUp extends Component
         }
 
         return null;
+    }
+
+    private function activePromise(ContractedService $service): ?Gestion
+    {
+        $latestPayment = $service->gestions
+            ->filter(fn (Gestion $gestion): bool => $gestion->type === 'Pago recibido')
+            ->sortByDesc('occurred_at')
+            ->first();
+
+        return $service->gestions
+            ->filter(fn (Gestion $gestion): bool => $gestion->promised_payment_date !== null)
+            ->filter(fn (Gestion $gestion): bool => $latestPayment === null || $gestion->occurred_at?->gt($latestPayment->occurred_at))
+            ->sortByDesc('promised_payment_date')
+            ->first();
     }
 
     private function followUpPriority(ContractedService $service): int
