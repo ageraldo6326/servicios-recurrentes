@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Enums\ContractedServiceStatus;
 use App\Enums\ChargeStatus;
-use App\Models\Charge;
+use App\Enums\ContractedServiceStatus;
 use App\Models\CatalogService;
+use App\Models\Charge;
 use App\Models\Client;
 use App\Models\CompanySetting;
 use App\Models\ContractedService;
@@ -13,8 +13,8 @@ use App\Models\Gestion;
 use App\Models\Payment;
 use App\Models\Provider;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Carbon\Carbon;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ContractedServiceModuleTest extends TestCase
@@ -210,7 +210,38 @@ class ContractedServiceModuleTest extends TestCase
 
         $this->get(route('dashboard'))
             ->assertOk()
-            ->assertDontSee($client->name);
+            ->assertDontSee('Faltan 7 días para el cobro');
+        Carbon::setTestNow();
+    }
+
+    public function test_follow_up_projects_the_next_recurring_billing_date_across_months(): void
+    {
+        [$client, $catalogService, $provider] = $this->entities();
+        $service = ContractedService::create([
+            ...$this->payload($client, $catalogService, $provider),
+            'billing_day' => 5,
+            'status' => ContractedServiceStatus::Active,
+        ]);
+        CompanySetting::create([
+            'timezone' => 'America/Santo_Domingo',
+            'upcoming_due_days' => 7,
+        ]);
+        Charge::create([
+            'contracted_service_id' => $service->id,
+            'status' => ChargeStatus::Paid,
+            'amount' => 50,
+            'currency' => 'USD',
+            'due_date' => '2026-08-05',
+        ]);
+        Carbon::setTestNow(Carbon::parse('2026-08-29 12:00:00', 'America/Santo_Domingo'));
+
+        $this->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Próximo vencimiento')
+            ->assertSee('Faltan 7 días para el cobro')
+            ->assertSee('05/09/2026')
+            ->assertSee($client->name);
+
         Carbon::setTestNow();
     }
 

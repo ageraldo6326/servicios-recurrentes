@@ -7,8 +7,8 @@ use App\Enums\PaymentStatus;
 use App\Models\CatalogService;
 use App\Models\CompanySetting;
 use App\Models\ContractedService;
-use Carbon\CarbonImmutable;
 use App\Models\Provider;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Layout;
@@ -233,11 +233,30 @@ class FollowUp extends Component
         return (float) ($pendingCharge?->amount ?? $service->price);
     }
 
-    private function billingDate(ContractedService $service)
+    private function billingDate(ContractedService $service): CarbonImmutable
     {
         $month = $this->evaluationNow()->startOfMonth();
+        $currentBillingDate = $this->billingDateForMonth($service, $month);
 
-        return $month->copy()->day(min((int) $service->billing_day, $month->daysInMonth));
+        if ($currentBillingDate->gte($this->evaluationNow()->startOfDay())) {
+            return $currentBillingDate;
+        }
+
+        $currentBillingCharge = $service->charges
+            ->filter(fn ($charge): bool => $charge->due_date?->isSameDay($currentBillingDate))
+            ->sortByDesc('created_at')
+            ->first();
+
+        if ($currentBillingCharge?->status !== ChargeStatus::Paid) {
+            return $currentBillingDate;
+        }
+
+        return $this->billingDateForMonth($service, $month->addMonth());
+    }
+
+    private function billingDateForMonth(ContractedService $service, CarbonImmutable $month): CarbonImmutable
+    {
+        return $month->day(min((int) $service->billing_day, $month->daysInMonth));
     }
 
     private function overdueDays(ContractedService $service): int
