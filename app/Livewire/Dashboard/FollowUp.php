@@ -132,8 +132,17 @@ class FollowUp extends Component
             })
             ->filter(fn (ContractedService $service): bool => $service->getAttribute('follow_up_type') !== null)
             ->sort(function (ContractedService $left, ContractedService $right): int {
-                return [$left->follow_up_priority, -$left->created_at->timestamp, $left->client->name]
-                    <=> [$right->follow_up_priority, -$right->created_at->timestamp, $right->client->name];
+                return [
+                    $left->follow_up_priority,
+                    $left->follow_up_type === 'upcoming' ? $left->days_until_billing : 0,
+                    -$left->created_at->timestamp,
+                    $left->client->name,
+                ] <=> [
+                    $right->follow_up_priority,
+                    $right->follow_up_type === 'upcoming' ? $right->days_until_billing : 0,
+                    -$right->created_at->timestamp,
+                    $right->client->name,
+                ];
             })
             ->values();
     }

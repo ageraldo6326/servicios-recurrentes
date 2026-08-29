@@ -245,6 +245,28 @@ class ContractedServiceModuleTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_follow_up_orders_upcoming_billings_by_days_remaining(): void
+    {
+        $this->createUpcomingService('Cliente siete días', 5, '2026-08-05');
+        $this->createUpcomingService('Cliente un día', 30);
+        $this->createUpcomingService('Cliente cuatro días', 2, '2026-08-02');
+        CompanySetting::create([
+            'timezone' => 'America/Santo_Domingo',
+            'upcoming_due_days' => 7,
+        ]);
+        Carbon::setTestNow(Carbon::parse('2026-08-29 12:00:00', 'America/Santo_Domingo'));
+
+        $this->get(route('dashboard'))
+            ->assertOk()
+            ->assertSeeInOrder([
+                'Cliente un día',
+                'Cliente cuatro días',
+                'Cliente siete días',
+            ]);
+
+        Carbon::setTestNow();
+    }
+
     public function test_marking_a_service_as_paid_registers_payment_and_automatic_gestion(): void
     {
         [$client, $catalogService, $provider] = $this->entities();
@@ -276,6 +298,27 @@ class ContractedServiceModuleTest extends TestCase
             CatalogService::create(['name' => 'PBX', 'is_active' => true]),
             Provider::create(['name' => 'Proveedor', 'payment_method' => 'Mensual']),
         ];
+    }
+
+    private function createUpcomingService(string $clientName, int $billingDay, ?string $paidDueDate = null): void
+    {
+        $client = Client::create(['name' => $clientName, 'phone' => '8090000000']);
+        $catalogService = CatalogService::create(['name' => 'PBX', 'is_active' => true]);
+        $provider = Provider::create(['name' => 'Proveedor', 'payment_method' => 'Mensual']);
+        $service = ContractedService::create([
+            ...$this->payload($client, $catalogService, $provider),
+            'billing_day' => $billingDay,
+            'status' => ContractedServiceStatus::Active,
+        ]);
+        if ($paidDueDate !== null) {
+            Charge::create([
+                'contracted_service_id' => $service->id,
+                'status' => ChargeStatus::Paid,
+                'amount' => 50,
+                'currency' => 'USD',
+                'due_date' => $paidDueDate,
+            ]);
+        }
     }
 
     private function payload(Client $client, CatalogService $catalogService, Provider $provider): array
