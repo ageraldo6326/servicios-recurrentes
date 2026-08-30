@@ -113,8 +113,8 @@ window.notebookEditor = (pageId, version, title, html) => ({
         event.preventDefault();
         const paragraphs = text
             .replace(/\r\n?/g, '\n')
-            .split('\n')
-            .map((line) => `<p>${line === '' ? '<br>' : this.escapeHtml(line)}</p>`)
+            .split(/\n{2,}/)
+            .map((paragraph) => `<p>${this.escapeHtml(paragraph).replace(/\n/g, '<br>')}</p>`)
             .join('');
 
         this.$refs.body.focus();
