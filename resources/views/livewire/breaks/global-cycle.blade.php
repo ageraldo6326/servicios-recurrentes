@@ -1,6 +1,6 @@
 <div wire:poll.5s="tick"
     x-data="{ target: @js($targetAt), remaining: @js($remainingSeconds), sessionId: @js($sessionId), customSoundUrl: @js($customSoundUrl), customBreakSoundUrl: @js($customBreakSoundUrl), soundOnBreak: @js($soundOnBreak), soundOnReturn: @js($soundOnReturn), notificationSoundEnabled: @js($notificationSoundEnabled), timer: null }"
-    x-init="window.breakCustomSoundUrl = customSoundUrl; window.breakCustomBreakSoundUrl = customBreakSoundUrl; timer = setInterval(() => { if (target) remaining = Math.max(0, Math.ceil((new Date(target).getTime() - Date.now()) / 1000)); }, 1000); window.armBreakTimer?.(target, @js($status), sessionId, @js($notificationSoundEnabled && ($status === 'break_active' ? $soundOnReturn : $soundOnBreak))); $watch('$wire.targetAt', value => { target = value; sessionId = $wire.sessionId; window.armBreakTimer?.(value, $wire.status, sessionId, $wire.notificationSoundEnabled && ($wire.status === 'break_active' ? $wire.soundOnReturn : $wire.soundOnBreak)); }); $watch('$wire.status', value => window.armBreakTimer?.(target, value, sessionId, $wire.notificationSoundEnabled && (value === 'break_active' ? $wire.soundOnReturn : $wire.soundOnBreak))); $watch('$wire.notificationSoundEnabled', value => { notificationSoundEnabled = value; window.armBreakTimer?.(target, $wire.status, sessionId, value && ($wire.status === 'break_active' ? $wire.soundOnReturn : $wire.soundOnBreak)); }); $watch('$wire.customSoundUrl', value => { customSoundUrl = value; window.breakCustomSoundUrl = value; }); $watch('$wire.customBreakSoundUrl', value => { customBreakSoundUrl = value; window.breakCustomBreakSoundUrl = value; })"
+    x-init="window.breakCustomSoundUrl = customSoundUrl; window.breakCustomBreakSoundUrl = customBreakSoundUrl; window.setBreakAudioEnabled?.(notificationSoundEnabled); timer = setInterval(() => { if (target) remaining = Math.max(0, Math.ceil((new Date(target).getTime() - Date.now()) / 1000)); }, 1000); window.armBreakTimer?.(target, @js($status), sessionId, @js($notificationSoundEnabled && ($status === 'break_active' ? $soundOnReturn : $soundOnBreak))); $watch('$wire.targetAt', value => { target = value; sessionId = $wire.sessionId; window.armBreakTimer?.(value, $wire.status, sessionId, $wire.notificationSoundEnabled && ($wire.status === 'break_active' ? $wire.soundOnReturn : $wire.soundOnBreak)); }); $watch('$wire.status', value => window.armBreakTimer?.(target, value, sessionId, $wire.notificationSoundEnabled && (value === 'break_active' ? $wire.soundOnReturn : $wire.soundOnBreak))); $watch('$wire.notificationSoundEnabled', value => { notificationSoundEnabled = value; window.setBreakAudioEnabled?.(value); window.armBreakTimer?.(target, $wire.status, sessionId, value && ($wire.status === 'break_active' ? $wire.soundOnReturn : $wire.soundOnBreak)); }); $watch('$wire.customSoundUrl', value => { customSoundUrl = value; window.breakCustomSoundUrl = value; }); $watch('$wire.customBreakSoundUrl', value => { customBreakSoundUrl = value; window.breakCustomBreakSoundUrl = value; })"
     x-on:break-cycle-alert.window="window.notifyBreakAlert?.(event.detail.kind, event.detail.token)"
     class="relative flex min-w-0 items-center">
     <div class="flex min-w-0 items-center gap-2">
@@ -23,12 +23,12 @@
             @elseif ($status === 'paused')
                 <button type="button" wire:click="resumeWork" class="button h-9 w-9 px-0 text-[11px] sm:w-auto sm:px-3" aria-label="Reanudar trabajo" title="Reanudar trabajo">▶<span class="ml-1 hidden sm:inline">Reanudar</span></button>
             @elseif (in_array($status, ['break_completed', 'break_cancelled', 'work_pending'], true))
-                <button type="button" x-on:click="window.enableBreakAudio?.()" wire:click="startWork" class="button h-9 w-9 px-0 text-[11px] sm:w-auto sm:px-3" aria-label="Iniciar trabajo" title="Iniciar trabajo">▶<span class="ml-1 hidden sm:inline">Trabajar</span></button>
+                <button type="button" x-on:click="window.enableBreakAudio?.(false)" wire:click="startWork" class="button h-9 w-9 px-0 text-[11px] sm:w-auto sm:px-3" aria-label="Iniciar trabajo" title="Iniciar trabajo">▶<span class="ml-1 hidden sm:inline">Trabajar</span></button>
             @else
-                <button type="button" x-on:click="window.enableBreakAudio?.()" wire:click="startWork" class="button h-9 w-9 px-0 text-[11px] sm:w-auto sm:px-3" aria-label="Iniciar pausas" title="Iniciar pausas">▶<span class="ml-1 hidden sm:inline">Iniciar pausas</span></button>
+                <button type="button" x-on:click="window.enableBreakAudio?.(false)" wire:click="startWork" class="button h-9 w-9 px-0 text-[11px] sm:w-auto sm:px-3" aria-label="Iniciar pausas" title="Iniciar pausas">▶<span class="ml-1 hidden sm:inline">Iniciar pausas</span></button>
             @endif
             @if ($soundOnBreak || $soundOnReturn)
-                <button type="button" wire:click="toggleNotificationSound" x-on:click="if (!notificationSoundEnabled) window.enableBreakAudio?.(false, false)" class="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-line text-sm transition hover:border-brand hover:text-brand {{ $notificationSoundEnabled ? 'bg-surface text-muted' : 'bg-surface-soft text-muted' }}" aria-label="{{ $notificationSoundEnabled ? 'Silenciar sonido de pausas' : 'Activar sonido de pausas' }}" aria-pressed="{{ $notificationSoundEnabled ? 'true' : 'false' }}" title="{{ $notificationSoundEnabled ? 'Silenciar sonido de pausas' : 'Activar sonido de pausas' }}">{{ $notificationSoundEnabled ? '🔊' : '🔇' }}</button>
+                <button type="button" wire:click="toggleNotificationSound" x-on:click="notificationSoundEnabled = !notificationSoundEnabled; window.setBreakAudioEnabled?.(notificationSoundEnabled); if (notificationSoundEnabled) window.enableBreakAudio?.(false, false)" class="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-line text-sm transition hover:border-brand hover:text-brand {{ $notificationSoundEnabled ? 'bg-surface text-muted' : 'bg-surface-soft text-muted' }}" aria-label="{{ $notificationSoundEnabled ? 'Silenciar sonido de pausas' : 'Activar sonido de pausas' }}" aria-pressed="{{ $notificationSoundEnabled ? 'true' : 'false' }}" title="{{ $notificationSoundEnabled ? 'Silenciar sonido de pausas' : 'Activar sonido de pausas' }}">{{ $notificationSoundEnabled ? '🔊' : '🔇' }}</button>
             @endif
         </div>
     @endif
@@ -53,7 +53,7 @@
         </div>
     @elseif (in_array($status, ['break_completed', 'break_cancelled', 'work_pending'], true) && $enabled)
         <div class="pointer-events-none absolute left-0 top-full z-[70] mt-3 w-[min(36rem,calc(100vw-2rem))]">
-            <section class="pointer-events-auto w-full overflow-hidden rounded-2xl border border-sky-200 bg-surface p-4 shadow-2xl dark:border-sky-800 sm:p-5" role="alert" aria-live="assertive"><div class="flex items-start gap-3"><div class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sky-100 text-xl dark:bg-sky-950/60">🔔</div><div><p class="text-xs font-black uppercase tracking-[0.18em] text-sky-700 dark:text-sky-300">{{ $status === 'break_cancelled' ? 'Pausa cancelada' : 'Hora de volver al trabajo' }}</p><h2 class="mt-1 text-xl font-black text-ink">{{ $status === 'break_cancelled' ? 'La pausa fue detenida' : 'Tu pausa ha terminado' }}</h2><p class="mt-2 text-sm text-muted">Confirma para iniciar un nuevo período de trabajo y programar la próxima pausa.</p></div></div><button type="button" x-on:click="window.enableBreakAudio?.()" wire:click="startWork" class="button mt-4 min-h-11 w-full text-sm">▶ Comenzar nuevo período de trabajo</button></section>
+            <section class="pointer-events-auto w-full overflow-hidden rounded-2xl border border-sky-200 bg-surface p-4 shadow-2xl dark:border-sky-800 sm:p-5" role="alert" aria-live="assertive"><div class="flex items-start gap-3"><div class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-sky-100 text-xl dark:bg-sky-950/60">🔔</div><div><p class="text-xs font-black uppercase tracking-[0.18em] text-sky-700 dark:text-sky-300">{{ $status === 'break_cancelled' ? 'Pausa cancelada' : 'Hora de volver al trabajo' }}</p><h2 class="mt-1 text-xl font-black text-ink">{{ $status === 'break_cancelled' ? 'La pausa fue detenida' : 'Tu pausa ha terminado' }}</h2><p class="mt-2 text-sm text-muted">Confirma para iniciar un nuevo período de trabajo y programar la próxima pausa.</p></div></div><button type="button" x-on:click="window.enableBreakAudio?.(false)" wire:click="startWork" class="button mt-4 min-h-11 w-full text-sm">▶ Comenzar nuevo período de trabajo</button></section>
         </div>
     @endif
 </div>
@@ -63,10 +63,41 @@
         window.breakAlertChannel = window.breakAlertChannel || ('BroadcastChannel' in window ? new BroadcastChannel('service-manager-breaks') : null);
         window.breakWorker = window.breakWorker || null;
         window.breakAlarmBusy = false;
+        window.breakAudioEnabled = true;
+        window.breakActiveAudio = window.breakActiveAudio || new Set();
+        window.breakActiveOscillators = window.breakActiveOscillators || new Set();
+
+        window.stopBreakAudio = window.stopBreakAudio || function () {
+            window.breakActiveAudio.forEach(audio => {
+                audio.pause();
+                audio.currentTime = 0;
+            });
+            window.breakActiveAudio.clear();
+            window.breakActiveOscillators.forEach(oscillator => {
+                try { oscillator.stop(); } catch (_) {}
+            });
+            window.breakActiveOscillators.clear();
+            window.breakAlarmBusy = false;
+        };
+
+        window.setBreakAudioEnabled = window.setBreakAudioEnabled || function (enabled) {
+            window.breakAudioEnabled = Boolean(enabled);
+            if (!window.breakAudioEnabled) {
+                window.stopBreakAudio();
+                window.breakAudioContext?.suspend();
+            }
+        };
+
+        window.trackBreakAudio = window.trackBreakAudio || function (audio) {
+            window.breakActiveAudio.add(audio);
+            audio.addEventListener('ended', () => window.breakActiveAudio.delete(audio), { once: true });
+            return audio;
+        };
 
         window.playBreakAlarm = window.playBreakAlarm || function () {
+            if (!window.breakAudioEnabled) return;
             if (window.breakCustomSoundUrl) {
-                const customAudio = new Audio(window.breakCustomSoundUrl);
+                const customAudio = window.trackBreakAudio(new Audio(window.breakCustomSoundUrl));
                 customAudio.volume = 1;
                 customAudio.play().catch(() => {});
                 return;
@@ -90,6 +121,7 @@
                 oscillator.frequency.setValueAtTime(frequency, now);
                 oscillator.detune.value = index * 3;
                 oscillator.connect(filter);
+                window.breakActiveOscillators.add(oscillator);
                 oscillator.start(now);
                 oscillator.stop(now + 0.95);
             });
@@ -97,8 +129,9 @@
         };
 
         window.playBreakStartAlarm = window.playBreakStartAlarm || function () {
+            if (!window.breakAudioEnabled) return;
             if (window.breakCustomBreakSoundUrl) {
-                const customAudio = new Audio(window.breakCustomBreakSoundUrl);
+                const customAudio = window.trackBreakAudio(new Audio(window.breakCustomBreakSoundUrl));
                 customAudio.volume = 1;
                 customAudio.play().catch(() => {});
                 return;
@@ -122,6 +155,7 @@
                 note.gain.exponentialRampToValueAtTime(0.55, start + 0.03);
                 note.gain.exponentialRampToValueAtTime(0.0001, start + 0.38);
                 oscillator.connect(note).connect(master);
+                window.breakActiveOscillators.add(oscillator);
                 oscillator.start(start);
                 oscillator.stop(start + 0.4);
             });
@@ -134,7 +168,7 @@
             window.breakAudioContext = window.breakAudioContext || new AudioContext();
             window.breakAudioContext.resume();
             if (requestNotificationPermission && 'Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => {});
-            if (playSound) window.playBreakAlarm();
+            if (playSound && window.breakAudioEnabled) window.playBreakAlarm();
         };
 
         window.notifyBreakAlert = window.notifyBreakAlert || function (kind, token) {
@@ -146,7 +180,7 @@
             localStorage.setItem(key, '1');
             window.breakAlertChannel?.postMessage({ key });
             const isReturn = kind.includes('finished');
-            if (!kind.endsWith('visual')) {
+            if (!kind.endsWith('visual') && window.breakAudioEnabled) {
                 isReturn ? window.playBreakAlarm?.() : window.playBreakStartAlarm?.();
             }
             if ('Notification' in window && Notification.permission === 'granted') {
