@@ -22,6 +22,7 @@ final class ConfigureBreakSettings
                     'break_minutes' => 5,
                     'sound_on_break' => true,
                     'sound_on_return' => true,
+                    'notification_sound_enabled' => true,
                     'custom_sound_path' => null,
                     'custom_break_sound_path' => null,
                     'visual_alert' => true,

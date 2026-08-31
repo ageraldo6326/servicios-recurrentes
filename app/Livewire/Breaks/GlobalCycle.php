@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Breaks;
 
+use App\Actions\ConfigureBreakSettings;
 use App\Services\BreakCycleService;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
@@ -33,6 +34,8 @@ class GlobalCycle extends Component
     public bool $soundOnBreak = true;
 
     public bool $soundOnReturn = true;
+
+    public bool $notificationSoundEnabled = true;
 
     public bool $visualAlert = true;
 
@@ -101,6 +104,15 @@ class GlobalCycle extends Component
         $this->tick();
     }
 
+    public function toggleNotificationSound(ConfigureBreakSettings $configure): void
+    {
+        $configure->execute(auth()->user(), [
+            'notification_sound_enabled' => ! $this->notificationSoundEnabled,
+        ]);
+
+        $this->tick();
+    }
+
     public function render(): View
     {
         return view('livewire.breaks.global-cycle');
@@ -122,6 +134,7 @@ class GlobalCycle extends Component
         $this->enabled = $snapshot['settings']->is_enabled;
         $this->soundOnBreak = $snapshot['settings']->sound_on_break;
         $this->soundOnReturn = $snapshot['settings']->sound_on_return;
+        $this->notificationSoundEnabled = $snapshot['settings']->notification_sound_enabled;
         $this->visualAlert = $snapshot['settings']->visual_alert;
         $this->breakMinutes = $snapshot['settings']->break_minutes;
         $this->workMinutes = $snapshot['settings']->work_minutes;

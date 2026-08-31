@@ -30,6 +30,7 @@ final class BreakCycleService
                 'break_minutes' => 5,
                 'sound_on_break' => true,
                 'sound_on_return' => true,
+                'notification_sound_enabled' => true,
                 'visual_alert' => true,
             ],
         );
@@ -63,7 +64,9 @@ final class BreakCycleService
                 ]);
                 $session->save();
                 $this->record($session, $user, 'break_notified');
-                $event = $settings->sound_on_break ? 'break-start' : 'break-start-visual';
+                $event = $settings->notification_sound_enabled && $settings->sound_on_break
+                    ? 'break-start'
+                    : 'break-start-visual';
             }
 
             if ($session->status === BreakCycleStatus::BreakActive && $session->started_at?->addMinutes($session->configured_break_minutes)->isPast()) {
@@ -75,7 +78,9 @@ final class BreakCycleService
                 ]);
                 $session->save();
                 $this->record($session, $user, 'break_finished');
-                $event = $settings->sound_on_return ? 'break-finished' : 'break-finished-visual';
+                $event = $settings->notification_sound_enabled && $settings->sound_on_return
+                    ? 'break-finished'
+                    : 'break-finished-visual';
             }
 
             $session = $session->refresh()->load('exercise');
