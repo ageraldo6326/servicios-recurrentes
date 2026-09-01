@@ -31,6 +31,7 @@ use App\Livewire\FinancialAgenda\CreditCardsDashboard;
 use App\Livewire\FinancialAgenda\Dashboard as FinancialAgendaDashboard;
 use App\Livewire\Gestiones\Index as GestionesIndex;
 use App\Livewire\Notebooks\Workspace as NotebooksWorkspace;
+use App\Livewire\ProviderIpComparison\CompareForm as ProviderIpComparisonCompareForm;
 use App\Livewire\Providers\Index as ProvidersIndex;
 use App\Livewire\Tasks\Index as TasksIndex;
 use App\Livewire\UnplannedExpenses\Dashboard as UnplannedExpensesDashboard;
@@ -52,6 +53,7 @@ Route::middleware(['auth'])->group(function (): void {
     Route::get('catalog-services', CatalogServicesIndex::class)->name('catalog-services.index');
     Route::resource('catalog-services', CatalogServiceController::class)->except(['show', 'destroy', 'index']);
     Route::get('providers', ProvidersIndex::class)->name('providers.index');
+    Route::get('comparar-ip-proveedor', ProviderIpComparisonCompareForm::class)->name('provider-ip-comparison.index');
     Route::resource('providers', ProviderController::class)->except(['show', 'destroy', 'index']);
     Route::get('contracted-services', ContractedServicesIndex::class)->name('contracted-services.index');
     Route::resource('contracted-services', ContractedServiceController::class)->except(['show', 'index']);

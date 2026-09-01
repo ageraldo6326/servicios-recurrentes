@@ -111,6 +111,7 @@ final class SidebarNavigation
                 'label' => 'Herramientas',
                 'items' => [
                     ['key' => 'operational-dashboard', 'route' => 'dashboard.operational', 'active' => ['dashboard.operational'], 'icon' => '▣', 'label' => 'Panel operativo'],
+                    ['key' => 'provider-ip-comparison', 'route' => 'provider-ip-comparison.index', 'active' => ['provider-ip-comparison.*'], 'icon' => '⌁', 'label' => 'Comparar IP proveedor'],
                     ['key' => 'breaks', 'route' => 'breaks.dashboard', 'active' => ['breaks.*'], 'icon' => '◌', 'label' => 'Descansos activos'],
                 ],
             ],
