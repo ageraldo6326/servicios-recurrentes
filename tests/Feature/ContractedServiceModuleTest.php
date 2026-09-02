@@ -152,6 +152,36 @@ class ContractedServiceModuleTest extends TestCase
             ->assertSee($client->name);
     }
 
+    public function test_follow_up_dashboard_always_lists_an_unpaid_charge_from_a_previous_period(): void
+    {
+        [$client, $catalogService, $provider] = $this->entities();
+        $client->update(['name' => 'Cliente con cobro histórico pendiente']);
+        $service = ContractedService::create([
+            ...$this->payload($client, $catalogService, $provider),
+            'billing_day' => 15,
+            'status' => ContractedServiceStatus::Active,
+        ]);
+        CompanySetting::create([
+            'timezone' => 'America/Santo_Domingo',
+            'upcoming_due_days' => 1,
+        ]);
+        Charge::create([
+            'contracted_service_id' => $service->id,
+            'status' => ChargeStatus::Pending,
+            'amount' => 50,
+            'currency' => 'USD',
+            'due_date' => '2026-08-15',
+        ]);
+        Carbon::setTestNow(Carbon::parse('2026-09-02 12:00:00', 'America/Santo_Domingo'));
+
+        $this->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Cobro vencido')
+            ->assertSee($client->name);
+
+        Carbon::setTestNow();
+    }
+
     public function test_follow_up_dashboard_uses_the_contracted_service_billing_day_without_manual_charge(): void
     {
         [$client, $catalogService, $provider] = $this->entities();

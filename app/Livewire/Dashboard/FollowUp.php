@@ -5,6 +5,7 @@ namespace App\Livewire\Dashboard;
 use App\Enums\ChargeStatus;
 use App\Enums\PaymentStatus;
 use App\Models\CatalogService;
+use App\Models\Charge;
 use App\Models\CompanySetting;
 use App\Models\ContractedService;
 use App\Models\Gestion;
@@ -168,12 +169,13 @@ class FollowUp extends Component
             ->sortByDesc('created_at')
             ->first();
         $billingCyclePending = $billingCharge === null || $billingCharge->status !== ChargeStatus::Paid;
+        $overdueCharge = $this->oldestOverdueCharge($service);
 
-        if ($billingCyclePending && $promise?->promised_payment_date?->lt($today)) {
+        if (($billingCyclePending || $overdueCharge !== null) && $promise?->promised_payment_date?->lt($today)) {
             return 'promise_overdue';
         }
 
-        if ($billingCyclePending && $billingDate->lt($today)) {
+        if ($overdueCharge !== null || ($billingCyclePending && $billingDate->lt($today))) {
             return 'charge_overdue';
         }
 
@@ -248,6 +250,12 @@ class FollowUp extends Component
 
     private function collectionAmount(ContractedService $service): float
     {
+        $overdueCharge = $this->oldestOverdueCharge($service);
+
+        if ($overdueCharge !== null) {
+            return (float) $overdueCharge->amount;
+        }
+
         $billingCharge = $service->charges
             ->filter(fn ($charge): bool => $charge->due_date?->isSameDay($this->billingDate($service)))
             ->sortByDesc('created_at')
@@ -263,6 +271,15 @@ class FollowUp extends Component
             ->first();
 
         return (float) ($pendingCharge?->amount ?? $service->price);
+    }
+
+    private function oldestOverdueCharge(ContractedService $service): ?Charge
+    {
+        return $service->charges
+            ->filter(fn (Charge $charge): bool => in_array($charge->status, [ChargeStatus::Pending, ChargeStatus::Partial, ChargeStatus::Overdue], true))
+            ->filter(fn (Charge $charge): bool => $charge->due_date?->lt($this->evaluationNow()->startOfDay()))
+            ->sortBy('due_date')
+            ->first();
     }
 
     private function billingDate(ContractedService $service): CarbonImmutable
@@ -294,13 +311,7 @@ class FollowUp extends Component
     private function overdueDays(ContractedService $service): int
     {
         $today = $this->evaluationNow()->startOfDay();
-        $pendingCharge = $service->charges
-            ->filter(fn ($charge): bool => in_array($charge->status, [ChargeStatus::Pending, ChargeStatus::Partial, ChargeStatus::Overdue], true))
-            ->filter(fn ($charge): bool => $charge->due_date?->lt($today))
-            ->sortBy('due_date')
-            ->first();
-
-        $dueDate = $pendingCharge?->due_date;
+        $dueDate = $this->oldestOverdueCharge($service)?->due_date;
 
         if ($dueDate === null) {
             $billingDate = $this->billingDate($service);
