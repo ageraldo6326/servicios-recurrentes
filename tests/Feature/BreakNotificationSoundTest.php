@@ -30,6 +30,22 @@ class BreakNotificationSoundTest extends TestCase
         $this->assertFalse($setting->notification_sound_enabled);
     }
 
+    public function test_user_can_re_enable_the_persistent_notification_sound_preference(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        Livewire::test(GlobalCycle::class)
+            ->call('toggleNotificationSound')
+            ->assertSet('notificationSoundEnabled', false)
+            ->call('toggleNotificationSound')
+            ->assertSet('notificationSoundEnabled', true);
+
+        $setting = BreakSetting::query()->where('user_id', $user->id)->firstOrFail();
+
+        $this->assertTrue($setting->notification_sound_enabled);
+    }
+
     public function test_silencing_sound_keeps_the_break_transition_as_a_visual_alert(): void
     {
         $user = User::factory()->create();

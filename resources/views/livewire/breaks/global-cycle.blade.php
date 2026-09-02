@@ -28,7 +28,7 @@
                 <button type="button" x-on:click="window.enableBreakAudio?.(false)" wire:click="startWork" class="button h-9 w-9 px-0 text-[11px] sm:w-auto sm:px-3" aria-label="Iniciar pausas" title="Iniciar pausas">▶<span class="ml-1 hidden sm:inline">Iniciar pausas</span></button>
             @endif
             @if ($soundOnBreak || $soundOnReturn)
-                <button type="button" wire:click="toggleNotificationSound" x-on:click="notificationSoundEnabled = !notificationSoundEnabled; window.setBreakAudioEnabled?.(notificationSoundEnabled); if (notificationSoundEnabled) window.enableBreakAudio?.(false, false)" class="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-line text-sm transition hover:border-brand hover:text-brand {{ $notificationSoundEnabled ? 'bg-surface text-muted' : 'bg-surface-soft text-muted' }}" aria-label="{{ $notificationSoundEnabled ? 'Silenciar sonido de pausas' : 'Activar sonido de pausas' }}" aria-pressed="{{ $notificationSoundEnabled ? 'true' : 'false' }}" title="{{ $notificationSoundEnabled ? 'Silenciar sonido de pausas' : 'Activar sonido de pausas' }}">{{ $notificationSoundEnabled ? '🔊' : '🔇' }}</button>
+                <button type="button" wire:click="toggleNotificationSound" x-on:click="notificationSoundEnabled = !notificationSoundEnabled; if (notificationSoundEnabled) { window.reactivateBreakAudio?.($wire.status, $wire.soundOnBreak, $wire.soundOnReturn, target); } else { window.setBreakAudioEnabled?.(false); }" class="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-line text-sm transition hover:border-brand hover:text-brand {{ $notificationSoundEnabled ? 'bg-surface text-muted' : 'bg-surface-soft text-muted' }}" aria-label="{{ $notificationSoundEnabled ? 'Silenciar sonido de pausas' : 'Activar sonido de pausas' }}" aria-pressed="{{ $notificationSoundEnabled ? 'true' : 'false' }}" title="{{ $notificationSoundEnabled ? 'Silenciar sonido de pausas' : 'Activar sonido de pausas' }}">{{ $notificationSoundEnabled ? '🔊' : '🔇' }}</button>
             @endif
         </div>
     @endif
@@ -80,11 +80,11 @@
             window.breakAlarmBusy = false;
         };
 
-        window.setBreakAudioEnabled = window.setBreakAudioEnabled || function (enabled) {
+        window.setBreakAudioEnabled = function (enabled) {
             window.breakAudioEnabled = Boolean(enabled);
             if (!window.breakAudioEnabled) {
                 window.stopBreakAudio();
-                window.breakAudioContext?.suspend();
+                window.breakAudioContext?.suspend().catch(() => {});
             }
         };
 
@@ -162,13 +162,30 @@
             window.setTimeout(() => { window.breakAlarmBusy = false; }, 1300);
         };
 
-        window.enableBreakAudio = window.enableBreakAudio || function (playSound = true, requestNotificationPermission = true) {
+        window.enableBreakAudio = function (playSound = true, requestNotificationPermission = true) {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             if (!AudioContext) return;
-            window.breakAudioContext = window.breakAudioContext || new AudioContext();
-            window.breakAudioContext.resume();
+            if (!window.breakAudioContext || window.breakAudioContext.state === 'closed') {
+                window.breakAudioContext = new AudioContext();
+            }
+            window.breakAudioContext.resume().catch(() => {});
             if (requestNotificationPermission && 'Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => {});
             if (playSound && window.breakAudioEnabled) window.playBreakAlarm();
+        };
+
+        window.reactivateBreakAudio = function (status, soundOnBreak, soundOnReturn, target) {
+            window.setBreakAudioEnabled(true);
+            window.enableBreakAudio(false, false);
+
+            const targetReached = target && new Date(target).getTime() <= Date.now();
+            const breakAlertIsActive = status === 'break_pending' || (status === 'working' && targetReached);
+            const returnAlertIsActive = ['break_completed', 'work_pending'].includes(status) || (status === 'break_active' && targetReached);
+
+            if (breakAlertIsActive && soundOnBreak) {
+                window.playBreakStartAlarm();
+            } else if (returnAlertIsActive && soundOnReturn) {
+                window.playBreakAlarm();
+            }
         };
 
         window.notifyBreakAlert = window.notifyBreakAlert || function (kind, token) {
