@@ -36,10 +36,11 @@ class Index extends Component
                 $term = "%{$this->search}%";
                 $query->where(function ($query) use ($term): void {
                     $query->whereHas('contractedService.client', fn ($client) => $client->where('name', 'like', $term))
-                        ->orWhereHas('contractedService.catalogService', fn ($service) => $service->where('name', 'like', $term));
+                        ->orWhereHas('contractedService.catalogService', fn ($service) => $service->where('name', 'like', $term))
+                        ->orWhereHas('contractedService', fn ($service) => $service->where('ip', 'like', $term));
                 });
             })
-            ->orderBy('due_date')
+            ->latest('created_at')
             ->paginate(20);
 
         return view('livewire.charges.index', compact('charges'));
