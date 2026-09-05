@@ -148,6 +148,7 @@ Cualquier otro módulo pertenece al backlog.
 - No simplificar el negocio sacrificando trazabilidad.
 - No asumir que un servicio contratado puede pertenecer a varios clientes.
 - No asumir que los cobros se generan sin relación con un servicio contratado.
+- siempre recomienda un texto para el commit de la funcionalidad o el modulo creado
 
 ## 7. Estilo de implementación
 
@@ -199,6 +200,7 @@ Una funcionalidad solo se considera terminada si:
 - no rompe el historial;
 - no introduce complejidad innecesaria;
 - queda alineada con la documentación.
+- siempre recomienda un texto para el commit de la funcionalidad o el modulo creado
 
 ## 10. Diseño y look and feel
 

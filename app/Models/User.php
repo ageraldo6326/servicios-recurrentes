@@ -24,6 +24,7 @@ class User extends Authenticatable
         'email',
         'password',
         'sidebar_menu_order',
+        'can_manage_database_backups',
     ];
 
     /**
@@ -47,6 +48,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'sidebar_menu_order' => 'array',
+            'can_manage_database_backups' => 'boolean',
         ];
     }
 
@@ -68,5 +70,10 @@ class User extends Authenticatable
     public function aiUsageLogs(): HasMany
     {
         return $this->hasMany(AiUsageLog::class);
+    }
+
+    public function canManageDatabaseBackups(): bool
+    {
+        return $this->can_manage_database_backups;
     }
 }

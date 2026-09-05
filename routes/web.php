@@ -10,6 +10,7 @@ use App\Http\Controllers\CommercialQuoteController;
 use App\Http\Controllers\CompanySettingController;
 use App\Http\Controllers\ContractedServiceController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DatabaseBackupController;
 use App\Http\Controllers\FinancialCommitmentController;
 use App\Http\Controllers\GestionController;
 use App\Http\Controllers\NotebookAttachmentController;
@@ -100,6 +101,12 @@ Route::middleware(['auth'])->group(function (): void {
     Route::put('configuracion/empresa', [CompanySettingController::class, 'update'])->name('settings.company.update');
     Route::get('configuracion/empresa/logo', [CompanySettingController::class, 'logo'])->name('settings.company.logo');
     Route::put('configuracion/menu/orden', [SidebarMenuOrderController::class, 'update'])->name('settings.sidebar-menu-order.update');
+    Route::get('respaldos', [DatabaseBackupController::class, 'index'])->name('database-backups.index');
+    Route::put('respaldos/configuracion', [DatabaseBackupController::class, 'update'])->name('database-backups.update');
+    Route::post('respaldos/generar', [DatabaseBackupController::class, 'generate'])
+        ->middleware('throttle:database-backup-generation')
+        ->name('database-backups.generate');
+    Route::get('respaldos/descargar/{token}', [DatabaseBackupController::class, 'download'])->name('database-backups.download');
 
     Route::prefix('financial-agenda')->name('financial-agenda.')->group(function (): void {
         Route::get('/', FinancialAgendaDashboard::class)->name('index');

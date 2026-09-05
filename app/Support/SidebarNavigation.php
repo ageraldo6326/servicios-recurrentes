@@ -14,10 +14,11 @@ final class SidebarNavigation
         $savedOrder = $user->sidebar_menu_order ?? [];
 
         return collect(self::sections())
-            ->map(function (array $section) use ($savedOrder): array {
+            ->map(function (array $section) use ($savedOrder, $user): array {
                 $positions = array_flip($savedOrder[$section['key']] ?? []);
 
                 $section['items'] = collect($section['items'])
+                    ->reject(fn (array $item): bool => $item['key'] === 'database-backups' && ! $user->canManageDatabaseBackups())
                     ->sortBy(fn (array $item): int => $positions[$item['key']] ?? PHP_INT_MAX)
                     ->values()
                     ->all();
@@ -119,6 +120,7 @@ final class SidebarNavigation
                 'key' => 'system',
                 'label' => 'Sistema',
                 'items' => [
+                    ['key' => 'database-backups', 'route' => 'database-backups.index', 'active' => ['database-backups.*'], 'icon' => '◉', 'label' => 'Respaldos'],
                     ['key' => 'settings', 'route' => 'settings.company.edit', 'active' => ['settings.*'], 'icon' => '⚙', 'label' => 'Configuración'],
                 ],
             ],
