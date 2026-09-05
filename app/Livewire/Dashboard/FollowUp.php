@@ -117,7 +117,8 @@ class FollowUp extends Component
                 $query->where(function ($query) use ($term): void {
                     $query->whereHas('client', fn ($client) => $client->where('name', 'like', $term))
                         ->orWhereHas('catalogService', fn ($service) => $service->where('name', 'like', $term))
-                        ->orWhere('ip', 'like', $term);
+                        ->orWhere('ip', 'like', $term)
+                        ->orWhere('observations', 'like', $term);
                 });
             })
             ->get();

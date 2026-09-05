@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\ChargeStatus;
 use App\Enums\ContractedServiceStatus;
+use App\Livewire\Dashboard\FollowUp;
 use App\Models\CatalogService;
 use App\Models\Charge;
 use App\Models\Client;
@@ -15,6 +16,7 @@ use App\Models\Provider;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class ContractedServiceModuleTest extends TestCase
@@ -150,6 +152,46 @@ class ContractedServiceModuleTest extends TestCase
             ->assertSee('¿Qué debo gestionar hoy?')
             ->assertSee('Cobro vencido')
             ->assertSee($client->name);
+    }
+
+    public function test_follow_up_dashboard_searches_text_contained_in_service_description(): void
+    {
+        [$matchingClient, $matchingCatalogService, $matchingProvider] = $this->entities();
+        $matchingClient->update(['name' => 'Cliente descripción encontrada']);
+        $matchingService = ContractedService::create([
+            ...$this->payload($matchingClient, $matchingCatalogService, $matchingProvider),
+            'observations' => 'Servidor dedicado con referencia ALFA-900 para la sede central.',
+            'status' => ContractedServiceStatus::Active,
+        ]);
+        Charge::create([
+            'contracted_service_id' => $matchingService->id,
+            'status' => ChargeStatus::Overdue,
+            'amount' => 50,
+            'currency' => 'USD',
+            'due_date' => now()->subDay()->toDateString(),
+        ]);
+
+        $otherClient = Client::create(['name' => 'Cliente sin coincidencia', 'phone' => '8091111111']);
+        $otherCatalogService = CatalogService::create(['name' => 'VPS', 'is_active' => true]);
+        $otherProvider = Provider::create(['name' => 'Proveedor alterno', 'payment_method' => 'Mensual']);
+        $otherService = ContractedService::create([
+            ...$this->payload($otherClient, $otherCatalogService, $otherProvider),
+            'observations' => 'Instancia de respaldo sin la referencia buscada.',
+            'status' => ContractedServiceStatus::Active,
+        ]);
+        Charge::create([
+            'contracted_service_id' => $otherService->id,
+            'status' => ChargeStatus::Overdue,
+            'amount' => 50,
+            'currency' => 'USD',
+            'due_date' => now()->subDay()->toDateString(),
+        ]);
+
+        Livewire::actingAs(auth()->user())
+            ->test(FollowUp::class)
+            ->set('search', 'alfa-900')
+            ->assertSee('Cliente descripción encontrada')
+            ->assertDontSee('Cliente sin coincidencia');
     }
 
     public function test_follow_up_dashboard_always_lists_an_unpaid_charge_from_a_previous_period(): void

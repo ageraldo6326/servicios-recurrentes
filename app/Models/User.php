@@ -74,6 +74,6 @@ class User extends Authenticatable
 
     public function canManageDatabaseBackups(): bool
     {
-        return $this->can_manage_database_backups;
+        return (bool) ($this->can_manage_database_backups ?? false);
     }
 }

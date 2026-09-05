@@ -20,7 +20,7 @@
 
     <div class="panel mb-6">
         <div class="grid gap-3 md:grid-cols-[1fr_180px_180px_180px_180px_auto]">
-            <label class="relative"><span class="sr-only">Buscar cliente o servicio</span><span class="pointer-events-none absolute left-3 top-3 text-lg text-muted">⌕</span><input wire:model.live.debounce.300ms="search" class="input mt-0 pl-10" placeholder="Buscar cliente, servicio o IP..."></label>
+            <label class="relative"><span class="sr-only">Buscar cliente, servicio, descripción o IP</span><span class="pointer-events-none absolute left-3 top-3 text-lg text-muted">⌕</span><input wire:model.live.debounce.300ms="search" class="input mt-0 pl-10" placeholder="Buscar cliente, servicio, descripción o IP..."></label>
             <select wire:model.live="provider" class="input mt-0"><option value="all">Todos los proveedores</option>@foreach($providers as $item)<option value="{{ $item->id }}">{{ $item->name }}</option>@endforeach</select>
             <select wire:model.live="serviceType" class="input mt-0"><option value="all">Todos los servicios</option>@foreach($catalogServices as $item)<option value="{{ $item->id }}">{{ $item->name }}</option>@endforeach</select>
             <select wire:model.live="status" class="input mt-0"><option value="active">Activos</option><option value="cancelled">Cancelados</option><option value="all">Todos los estados</option></select>
