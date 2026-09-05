@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\ChargeStatus;
 use App\Enums\ContractedServiceStatus;
+use App\Livewire\ContractedServices\Index as ContractedServicesIndex;
 use App\Livewire\Dashboard\FollowUp;
 use App\Models\CatalogService;
 use App\Models\Charge;
@@ -192,6 +193,34 @@ class ContractedServiceModuleTest extends TestCase
             ->set('search', 'alfa-900')
             ->assertSee('Cliente descripción encontrada')
             ->assertDontSee('Cliente sin coincidencia');
+    }
+
+    public function test_contracted_services_searches_text_contained_in_service_description(): void
+    {
+        [$matchingClient, $matchingCatalogService, $matchingProvider] = $this->entities();
+        $matchingClient->update(['name' => 'Cliente servicio encontrado']);
+        ContractedService::create([
+            ...$this->payload($matchingClient, $matchingCatalogService, $matchingProvider),
+            'observations' => 'Servidor dedicado con referencia ALFA-900 para la sede central.',
+            'status' => ContractedServiceStatus::Active,
+        ]);
+
+        $otherClient = Client::create(['name' => 'Cliente servicio no encontrado', 'phone' => '8092222222']);
+        $otherCatalogService = CatalogService::create(['name' => 'VPS', 'is_active' => true]);
+        $otherProvider = Provider::create(['name' => 'Proveedor alterno', 'payment_method' => 'Mensual']);
+        ContractedService::create([
+            ...$this->payload($otherClient, $otherCatalogService, $otherProvider),
+            'observations' => 'Instancia de respaldo sin la referencia buscada.',
+            'status' => ContractedServiceStatus::Active,
+        ]);
+
+        Livewire::actingAs(auth()->user())
+            ->test(ContractedServicesIndex::class)
+            ->set('search', 'alfa-900')
+            ->assertSee('Descripción')
+            ->assertSee('Cliente servicio encontrado')
+            ->assertSee('Servidor dedicado con referencia ALFA-900 para la sede central.')
+            ->assertDontSee('Cliente servicio no encontrado');
     }
 
     public function test_follow_up_dashboard_always_lists_an_unpaid_charge_from_a_previous_period(): void

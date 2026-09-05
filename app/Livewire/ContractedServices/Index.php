@@ -16,9 +16,13 @@ class Index extends Component
     use WithPagination;
 
     public string $search = '';
+
     public string $status = 'all';
+
     public string $provider = 'all';
+
     public string $billingDayFrom = 'all';
+
     public string $billingDayTo = 'all';
 
     public function updatedSearch(): void
@@ -59,7 +63,8 @@ class Index extends Component
                 $query->where(function ($query): void {
                     $query->whereHas('client', fn ($client) => $client->where('name', 'like', "%{$this->search}%"))
                         ->orWhereHas('catalogService', fn ($service) => $service->where('name', 'like', "%{$this->search}%"))
-                        ->orWhere('ip', 'like', "%{$this->search}%");
+                        ->orWhere('ip', 'like', "%{$this->search}%")
+                        ->orWhere('observations', 'like', "%{$this->search}%");
                 });
             })
             ->when($this->status !== 'all', fn ($query) => $query->where('status', $this->status))

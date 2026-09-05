@@ -8,7 +8,7 @@
         <div class="panel lg:sticky lg:top-24">
             <div class="mb-4"><p class="text-xs font-bold uppercase tracking-[0.16em] text-brand">Filtros</p><h2 class="mt-1 text-lg font-black text-ink">Buscar y segmentar</h2><p class="mt-1 text-sm text-muted">Combina los criterios para actualizar los indicadores y el detalle.</p></div>
             <div class="grid gap-3">
-                <label class="relative"><span class="sr-only">Buscar</span><span class="pointer-events-none absolute left-3 top-3 text-lg text-muted">⌕</span><input wire:model.live.debounce.300ms="search" class="input mt-0 pl-10" placeholder="Cliente, servicio o IP..."></label>
+                <label class="relative"><span class="sr-only">Buscar cliente, servicio, descripción o IP</span><span class="pointer-events-none absolute left-3 top-3 text-lg text-muted">⌕</span><input wire:model.live.debounce.300ms="search" class="input mt-0 pl-10" placeholder="Cliente, servicio, descripción o IP..."></label>
                 <select wire:model.live="status" class="input mt-0"><option value="all">Todos los estados</option><option value="active">Activos</option><option value="cancelled">Cancelados</option></select>
                 <select wire:model.live="provider" class="input mt-0"><option value="all">Todos los proveedores</option>@foreach($providers as $item)<option value="{{ $item->id }}">{{ $item->name }}</option>@endforeach</select>
                 <div class="grid grid-cols-2 gap-3"><select wire:model.live="billingDayFrom" class="input mt-0"><option value="all">Día desde</option>@for($day = 1; $day <= 31; $day++)<option value="{{ $day }}">Desde {{ $day }}</option>@endfor</select><select wire:model.live="billingDayTo" class="input mt-0"><option value="all">Día hasta</option>@for($day = 1; $day <= 31; $day++)<option value="{{ $day }}">Hasta {{ $day }}</option>@endfor</select></div>
@@ -26,8 +26,38 @@
     </div>
 
     <div class="surface overflow-hidden">
-        <div class="hidden overflow-x-auto md:block"><table class="table"><thead><tr><th>Cliente</th><th>Servicio</th><th>IP</th><th>Estado</th><th>Mensualidad</th><th>Proveedor</th><th></th></tr></thead><tbody>@forelse($services as $service)<tr><td><p class="font-bold text-ink">{{ $service->client->name }}</p><p class="text-xs text-muted">Cobro día {{ $service->billing_day }}</p></td><td><p class="font-semibold text-ink">{{ $service->catalogService->name }}</p><p class="text-xs text-muted">Desde {{ $service->starts_at->format('d/m/Y') }}</p></td><td class="font-mono text-xs">{{ $service->ip ?: '—' }}</td><td><span class="rounded-full px-2.5 py-1 text-[10px] font-black uppercase {{ $service->status->value === 'active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300' : 'bg-slate-100 dark:bg-slate-800 dark:text-slate-300' }}">{{ $service->status->value === 'active' ? 'Activo' : 'Cancelado' }}</span></td><td class="font-bold text-ink">{{ $service->price_currency }} {{ number_format($service->price, 2) }}</td><td class="text-sm text-muted">{{ $service->provider->name }}</td><td class="whitespace-nowrap"><a class="font-bold text-brand hover:underline" href="{{ route('contracted-services.edit', $service) }}">Editar</a><form class="ml-3 inline" method="post" action="{{ route('contracted-services.destroy', $service) }}">@csrf @method('delete')<button class="font-bold text-red-600 hover:underline" onclick="return confirm('¿Eliminar este servicio contratado?')">Borrar</button></form></td></tr>@empty<tr><td colspan="7" class="py-12 text-center text-muted">No encontramos servicios con esos filtros.</td></tr>@endforelse</tbody></table></div>
-        <div class="divide-y divide-line md:hidden">@forelse($services as $service)<article class="p-4"><div class="flex items-start justify-between gap-3"><div><p class="font-bold text-ink">{{ $service->client->name }}</p><p class="text-sm text-muted">{{ $service->catalogService->name }}</p></div><span class="rounded-full px-2 py-1 text-[10px] font-black uppercase {{ $service->status->value === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500' }}">{{ $service->status->value === 'active' ? 'Activo' : 'Cancelado' }}</span></div><div class="mt-4 grid grid-cols-2 gap-3 text-sm"><div><p class="text-xs text-muted">IP</p><p class="font-mono text-ink">{{ $service->ip ?: '—' }}</p></div><div><p class="text-xs text-muted">Mensualidad</p><p class="font-bold text-ink">{{ $service->price_currency }} {{ number_format($service->price, 2) }}</p></div><div><p class="text-xs text-muted">Proveedor</p><p class="text-ink">{{ $service->provider->name }}</p></div><div><p class="text-xs text-muted">Cobro</p><p class="text-ink">Día {{ $service->billing_day }}</p></div></div><div class="mt-4 flex items-center justify-between gap-3"><a class="font-bold text-brand" href="{{ route('contracted-services.edit', $service) }}">Editar servicio →</a><form method="post" action="{{ route('contracted-services.destroy', $service) }}">@csrf @method('delete')<button class="font-bold text-red-600" onclick="return confirm('¿Eliminar este servicio contratado?')">Borrar</button></form></div></article>@empty<div class="p-10 text-center text-muted">No encontramos servicios con esos filtros.</div>@endforelse</div>
+        <div class="hidden overflow-x-auto md:block">
+            <table class="table min-w-[960px]">
+                <thead><tr><th>Cliente</th><th>Servicio</th><th>Descripción</th><th>IP</th><th>Estado</th><th>Mensualidad</th><th>Proveedor</th><th></th></tr></thead>
+                <tbody>
+                    @forelse($services as $service)
+                        <tr>
+                            <td><p class="font-bold text-ink">{{ $service->client->name }}</p><p class="text-xs text-muted">Cobro día {{ $service->billing_day }}</p></td>
+                            <td><p class="font-semibold text-ink">{{ $service->catalogService->name }}</p><p class="text-xs text-muted">Desde {{ $service->starts_at->format('d/m/Y') }}</p></td>
+                            <td class="max-w-xs"><p class="truncate text-sm text-ink" title="{{ $service->observations ?? '' }}">{{ $service->observations ?: '—' }}</p></td>
+                            <td class="font-mono text-xs">{{ $service->ip ?: '—' }}</td>
+                            <td><span class="rounded-full px-2.5 py-1 text-[10px] font-black uppercase {{ $service->status->value === 'active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300' : 'bg-slate-100 dark:bg-slate-800 dark:text-slate-300' }}">{{ $service->status->value === 'active' ? 'Activo' : 'Cancelado' }}</span></td>
+                            <td class="font-bold text-ink">{{ $service->price_currency }} {{ number_format($service->price, 2) }}</td>
+                            <td class="text-sm text-muted">{{ $service->provider->name }}</td>
+                            <td class="whitespace-nowrap"><a class="font-bold text-brand hover:underline" href="{{ route('contracted-services.edit', $service) }}">Editar</a><form class="ml-3 inline" method="post" action="{{ route('contracted-services.destroy', $service) }}">@csrf @method('delete')<button class="font-bold text-red-600 hover:underline" onclick="return confirm('¿Eliminar este servicio contratado?')">Borrar</button></form></td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="8" class="py-12 text-center text-muted">No encontramos servicios con esos filtros.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        <div class="divide-y divide-line md:hidden">
+            @forelse($services as $service)
+                <article class="p-4">
+                    <div class="flex items-start justify-between gap-3"><div><p class="font-bold text-ink">{{ $service->client->name }}</p><p class="text-sm text-muted">{{ $service->catalogService->name }}</p></div><span class="rounded-full px-2 py-1 text-[10px] font-black uppercase {{ $service->status->value === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500' }}">{{ $service->status->value === 'active' ? 'Activo' : 'Cancelado' }}</span></div>
+                    <div class="mt-4 grid grid-cols-2 gap-3 text-sm"><div><p class="text-xs text-muted">IP</p><p class="font-mono text-ink">{{ $service->ip ?: '—' }}</p></div><div><p class="text-xs text-muted">Mensualidad</p><p class="font-bold text-ink">{{ $service->price_currency }} {{ number_format($service->price, 2) }}</p></div><div><p class="text-xs text-muted">Proveedor</p><p class="text-ink">{{ $service->provider->name }}</p></div><div><p class="text-xs text-muted">Cobro</p><p class="text-ink">Día {{ $service->billing_day }}</p></div><div class="col-span-2"><p class="text-xs text-muted">Descripción</p><p class="mt-1 text-ink">{{ $service->observations ?: '—' }}</p></div></div>
+                    <div class="mt-4 flex items-center justify-between gap-3"><a class="font-bold text-brand" href="{{ route('contracted-services.edit', $service) }}">Editar servicio →</a><form method="post" action="{{ route('contracted-services.destroy', $service) }}">@csrf @method('delete')<button class="font-bold text-red-600" onclick="return confirm('¿Eliminar este servicio contratado?')">Borrar</button></form></div>
+                </article>
+            @empty
+                <div class="p-10 text-center text-muted">No encontramos servicios con esos filtros.</div>
+            @endforelse
+        </div>
         <div class="border-t border-line px-4 py-3">{{ $services->links() }}</div>
     </div>
 </div>
