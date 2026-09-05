@@ -45,11 +45,14 @@ return new class extends Migration
                 $table->unsignedSmallInteger('reminder_interval_days');
                 $table->timestamps();
 
-                $table->index(['database_backup_setting_id', 'created_at']);
             });
         }
 
         Schema::table('database_backup_setting_histories', function (Blueprint $table): void {
+            $table->index(
+                ['database_backup_setting_id', 'created_at'],
+                'db_bkp_setting_history_created_idx',
+            );
             $table->foreign('database_backup_setting_id', 'db_bkp_setting_history_setting_fk')
                 ->references('id')
                 ->on('database_backup_settings')
