@@ -1,5 +1,44 @@
 import './bootstrap';
 
+window.callActivityElapsed = (serverNowEpoch, lastOutboundEpoch) => ({
+    baseSeconds: Number(serverNowEpoch) - Number(lastOutboundEpoch),
+    elapsedSeconds: Number(serverNowEpoch) - Number(lastOutboundEpoch),
+    startedAt: 0,
+    intervalId: null,
+
+    init() {
+        this.startedAt = performance.now();
+        this.intervalId = window.setInterval(() => {
+            this.elapsedSeconds = this.baseSeconds + Math.floor((performance.now() - this.startedAt) / 1000);
+        }, 1000);
+    },
+
+    destroy() {
+        window.clearInterval(this.intervalId);
+    },
+
+    get label() {
+        const seconds = Math.max(0, Math.floor(this.elapsedSeconds));
+
+        if (seconds < 60) {
+            return `${seconds} s`;
+        }
+
+        if (seconds < 3600) {
+            return `${Math.floor(seconds / 60)} min ${seconds % 60} s`;
+        }
+
+        if (seconds < 86400) {
+            return `${Math.floor(seconds / 3600)} h ${Math.floor((seconds % 3600) / 60)} min`;
+        }
+
+        const days = Math.floor(seconds / 86400);
+        const hours = Math.floor((seconds % 86400) / 3600);
+
+        return `${days} ${days === 1 ? 'día' : 'días'} ${hours} h`;
+    },
+});
+
 window.notebookEditor = (pageId, version, title, html) => ({
     pageId,
     version,

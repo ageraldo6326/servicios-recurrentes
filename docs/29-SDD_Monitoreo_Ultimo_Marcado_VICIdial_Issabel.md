@@ -1,7 +1,7 @@
 # SDD — Monitoreo del último marcado saliente en VICIdial e Issabel
 
 **Proyecto:** PersonalSyS  
-**Versión:** 1.0  
+**Versión:** 1.1  
 **Fecha:** 29 de septiembre de 2026  
 **Estado:** Especificación para implementación
 
@@ -164,12 +164,15 @@ Agregar una sección en PersonalSyS, por ejemplo **Servidores → Actividad de m
 | Cliente | Nombre obtenido de la relación actual entre servidor y cliente; enlace a la ficha si existe. |
 | Servidor | Nombre o referencia, IP y acceso a su ficha. |
 | Plataforma | VICIdial o Issabel. |
-| Último marcado saliente | Fecha/hora local y tiempo transcurrido; “Sin llamadas registradas” si corresponde. |
+| Último marcado saliente | Fecha/hora local del intento; “Sin llamadas registradas” si corresponde. |
+| Tiempo sin marcar | Contador destacado e independiente de la fecha: tiempo exacto transcurrido desde el último intento saliente. |
 | Último reporte | Fecha/hora local y tiempo transcurrido; “Nunca” si no existe. |
 | Estado | Etiqueta visible y explicación breve. |
 | Umbral | Plazo de inactividad configurado para ese servidor. |
 
 La tabla incluirá búsqueda por cliente, servidor o IP; filtros por plataforma y estado; orden por mayor tiempo sin llamadas, con opción de ordenar por último reporte; y acceso al historial reciente de reportes de cada servidor. Mostrar un resumen superior con cantidades por estado.
+
+**Presentación del contador:** “Tiempo sin marcar” debe ser una columna visible, no solo una nota pequeña debajo de la fecha. Mostrar, por ejemplo, `3 min 17 s`, `5 h 24 min` o `2 días 4 h`. Si no hay llamada registrada, mostrar `Sin llamadas` en lugar de calcular una duración. El contador se calcula desde `last_outbound_at` (UTC), no desde `last_reported_at`, y se actualiza al menos una vez por minuto mientras el panel está abierto. La consulta del panel debe refrescar los datos del servidor periódicamente (valor inicial: cada 60 segundos) para detectar reportes nuevos y reiniciar el contador sin recargar manualmente la página. Usar una referencia horaria del servidor o un desfase calculado para evitar errores por un reloj local desajustado; después de la carga, el conteo visual puede avanzar en el navegador. La fecha exacta seguirá visible para auditoría.
 
 ### 7.2 Estados y prioridad
 
@@ -224,6 +227,7 @@ Para la primera puesta en marcha se proponen **48 horas sin marcado** y **36 hor
 8. El administrador puede ajustar los plazos por servidor y consultar los reportes recientes.
 9. La clave permanece fuera del código fuente, la base de datos de actividad, las respuestas públicas y los logs.
 10. La solución se integra con los clientes y servidores existentes sin duplicar sus registros.
+11. Cada fila muestra de forma destacada “Tiempo sin marcar”; su valor avanza mientras la página permanece abierta y refleja un nuevo marcado recibido por la API sin exigir recarga manual.
 
 ## 11. Decisiones para la siguiente etapa
 

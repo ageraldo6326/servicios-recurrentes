@@ -9,6 +9,7 @@ use App\Enums\ContractedServiceStatus;
 use App\Models\CompanySetting;
 use App\Models\ContractedService;
 use App\Services\CallActivity\CallActivityStateResolver;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator as LengthAwarePaginatorContract;
 use Illuminate\Contracts\View\View;
@@ -97,6 +98,7 @@ final class Index extends Component
 
     public function render(CallActivityStateResolver $stateResolver): View
     {
+        $serverNow = CarbonImmutable::now('UTC');
         $services = ContractedService::query()
             ->with(['client:id,name', 'catalogService:id,name', 'callActivity'])
             ->where('call_monitoring_enabled', true)
@@ -113,8 +115,18 @@ final class Index extends Component
             ->get();
 
         $states = $services->mapWithKeys(fn (ContractedService $service): array => [
-            $service->id => $stateResolver->resolve($service),
+            $service->id => $stateResolver->resolve($service, $serverNow),
         ]);
+
+        $elapsedSeconds = $services->mapWithKeys(fn (ContractedService $service): array => [
+            $service->id => $service->callActivity?->last_outbound_at === null
+                ? null
+                : $serverNow->getTimestamp() - $service->callActivity->last_outbound_at->getTimestamp(),
+        ]);
+
+        $elapsedLabels = $elapsedSeconds->map(
+            fn (?int $seconds): string => $seconds === null ? 'Sin llamadas' : $this->compactElapsed($seconds),
+        );
 
         $summary = collect(CallActivityState::cases())->mapWithKeys(fn (CallActivityState $state): array => [
             $state->value => $states->filter(fn (CallActivityState $current): bool => $current === $state)->count(),
@@ -146,10 +158,40 @@ final class Index extends Component
             'services' => $this->paginateCollection($filteredServices),
             'states' => $states,
             'summary' => $summary,
+            'serverNowEpoch' => $serverNow->getTimestamp(),
+            'elapsedLabels' => $elapsedLabels,
             'historyService' => $historyService,
             'historyReports' => $historyReports,
             'timezone' => $this->displayTimezone,
         ]);
+    }
+
+    private function compactElapsed(int $elapsedSeconds): string
+    {
+        $seconds = max(0, $elapsedSeconds);
+
+        if ($seconds < 60) {
+            return "{$seconds} s";
+        }
+
+        if ($seconds < 3600) {
+            $minutes = intdiv($seconds, 60);
+
+            return "{$minutes} min ".($seconds % 60).' s';
+        }
+
+        if ($seconds < 86400) {
+            $hours = intdiv($seconds, 3600);
+            $minutes = intdiv($seconds % 3600, 60);
+
+            return "{$hours} h {$minutes} min";
+        }
+
+        $days = intdiv($seconds, 86400);
+        $hours = intdiv($seconds % 86400, 3600);
+        $dayLabel = $days === 1 ? 'día' : 'días';
+
+        return "{$days} {$dayLabel} {$hours} h";
     }
 
     /**

@@ -198,6 +198,10 @@ final class ServerCallActivityTest extends TestCase
             ->test(Index::class)
             ->assertSee('Cliente sin reporte')
             ->assertSee('Sin reporte')
+            ->assertSee('Tiempo sin marcar')
+            ->assertSee('4 días 4 h')
+            ->assertSee('callActivityElapsed', false)
+            ->assertSee('Actualización en vivo')
             ->set('state', 'no_report')
             ->assertSee('Cliente sin reporte')
             ->call('openHistory', $service->id)
@@ -228,6 +232,35 @@ final class ServerCallActivityTest extends TestCase
         $this->assertSame(CallActivityState::Active, $resolver->resolve($active->load('callActivity')));
 
         CarbonImmutable::setTestNow();
+    }
+
+    public function test_panel_refresh_restarts_elapsed_time_when_a_new_outbound_call_arrives(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-09-29T15:00:00Z'));
+        Carbon::setTestNow(Carbon::parse('2026-09-29T15:00:00Z'));
+        $service = $this->createMonitoredService('203.0.113.85', 'Cliente con actividad nueva');
+        $activity = ServerCallActivity::create([
+            'contracted_service_id' => $service->id,
+            'last_outbound_at' => '2026-09-29 13:00:00',
+            'last_reported_at' => '2026-09-29 14:59:00',
+        ]);
+
+        $component = Livewire::actingAs(User::factory()->create())
+            ->test(Index::class)
+            ->assertSee('2 h 0 min')
+            ->assertSee('wire:poll.60s', false);
+
+        $activity->update([
+            'last_outbound_at' => '2026-09-29 14:55:00',
+            'last_reported_at' => '2026-09-29 15:00:00',
+        ]);
+
+        $component->call('$refresh')
+            ->assertSee('5 min 0 s')
+            ->assertDontSee('2 h 0 min');
+
+        CarbonImmutable::setTestNow();
+        Carbon::setTestNow();
     }
 
     public function test_service_form_requires_unique_ip_only_when_monitoring_is_enabled(): void
