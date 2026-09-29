@@ -36,5 +36,9 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('database-backup-generation', fn (Request $request): Limit => Limit::perMinute(2)
             ->by((string) ($request->user()?->id ?? $request->ip())));
+
+        RateLimiter::for('call-activity-reports', fn (Request $request): Limit => Limit::perMinute(
+            max(1, (int) config('services.call_activity.requests_per_minute', 60))
+        )->by((string) $request->ip()));
     }
 }

@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\ContractedServiceStatus;
 use App\Enums\ChargeStatus;
+use App\Enums\ContractedServiceStatus;
 use App\Enums\PaymentStatus;
 use App\Http\Requests\ContractedServiceRequest;
 use App\Models\CatalogService;
@@ -25,7 +25,7 @@ class ContractedServiceController extends Controller
 
     public function create()
     {
-        return view('contracted-services.form', ['service' => new ContractedService(['status' => ContractedServiceStatus::Active->value, 'price_currency' => 'USD', 'cost_currency' => 'USD']), 'clients' => Client::orderBy('name')->get(), 'catalogServices' => CatalogService::where('is_active', true)->orderBy('name')->get(), 'providers' => Provider::orderBy('name')->get()]);
+        return view('contracted-services.form', ['service' => new ContractedService(['status' => ContractedServiceStatus::Active->value, 'price_currency' => 'USD', 'cost_currency' => 'USD', 'call_monitoring_enabled' => false, 'inactivity_threshold_hours' => config('services.call_activity.default_inactivity_threshold_hours', 48), 'report_delay_threshold_hours' => config('services.call_activity.default_report_delay_threshold_hours', 36)]), 'clients' => Client::orderBy('name')->get(), 'catalogServices' => CatalogService::where('is_active', true)->orderBy('name')->get(), 'providers' => Provider::orderBy('name')->get()]);
     }
 
     public function store(ContractedServiceRequest $request)
@@ -126,5 +126,4 @@ class ContractedServiceController extends Controller
 
         return back()->with('success', 'Pago registrado y servicio preparado para el próximo período.');
     }
-
 }

@@ -47,7 +47,7 @@ final class SidebarNavigation
     }
 
     /**
-     * @param array<int, string> $order
+     * @param  array<int, string>  $order
      */
     public static function hasValidOrder(string $sectionKey, array $order): bool
     {
@@ -113,6 +113,7 @@ final class SidebarNavigation
                 'items' => [
                     ['key' => 'operational-dashboard', 'route' => 'dashboard.operational', 'active' => ['dashboard.operational'], 'icon' => '▣', 'label' => 'Panel operativo'],
                     ['key' => 'provider-ip-comparison', 'route' => 'provider-ip-comparison.index', 'active' => ['provider-ip-comparison.*'], 'icon' => '⌁', 'label' => 'Comparar IP proveedor'],
+                    ['key' => 'server-call-activity', 'route' => 'server-call-activity.index', 'active' => ['server-call-activity.*'], 'icon' => '◉', 'label' => 'Actividad de marcado'],
                     ['key' => 'breaks', 'route' => 'breaks.dashboard', 'active' => ['breaks.*'], 'icon' => '◌', 'label' => 'Descansos activos'],
                 ],
             ],
