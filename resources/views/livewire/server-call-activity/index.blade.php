@@ -1,15 +1,28 @@
-<div wire:poll.60s>
+<div>
     <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
             <p class="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-brand">Monitoreo de servidores</p>
             <h1 class="text-2xl font-black tracking-tight text-ink sm:text-4xl">Actividad de marcado</h1>
-            <p class="mt-2 max-w-3xl text-sm text-muted">Distingue la inactividad real de llamadas de los servidores que dejaron de reportar. Los contadores avanzan en vivo y los datos se consultan cada 60 segundos.</p>
+            <p class="mt-2 max-w-3xl text-sm text-muted">Distingue la inactividad real de llamadas de los servidores que dejaron de reportar. El tiempo sin marcar se calcula desde la última llamada hasta el momento en que actualizas el panel.</p>
         </div>
-        <div class="rounded-xl border border-line bg-surface px-4 py-3 text-xs text-muted">
-            <span class="font-bold text-ink">Zona horaria:</span> {{ $timezone }}
-            <span wire:loading class="ml-2 font-semibold text-brand">Actualizando…</span>
+        <div class="flex flex-col items-stretch gap-2 sm:items-end">
+            <div class="rounded-xl border border-line bg-surface px-4 py-3 text-xs text-muted">
+                <p><span class="font-bold text-ink">Zona horaria:</span> {{ $timezone }}</p>
+                <p class="mt-1"><span class="font-bold text-ink">Calculado:</span> {{ $calculatedAt }}</p>
+            </div>
+            <button type="button" wire:click="$refresh" wire:loading.attr="disabled" class="button-secondary">
+                <span wire:loading.remove>Actualizar datos</span>
+                <span wire:loading>Actualizando…</span>
+            </button>
         </div>
     </div>
+
+    @if ($usageAlertCount > 0)
+        <div class="mb-5 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/30 dark:text-red-200" role="alert">
+            <p class="font-black">Alerta de servidores sin uso</p>
+            <p class="mt-1">{{ $usageAlertCount }} {{ $usageAlertCount === 1 ? 'servidor supera' : 'servidores superan' }} {{ $noUsageAlertDescription }} sin llamadas salientes.</p>
+        </div>
+    @endif
 
     <div class="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
         @foreach (\App\Enums\CallActivityState::cases() as $summaryState)
@@ -53,7 +66,7 @@
                 <tbody>
                     @forelse ($services as $service)
                         @php($serviceState = $states[$service->id])
-                        <tr wire:key="call-activity-{{ $service->id }}-{{ $service->callActivity?->last_outbound_at?->getTimestamp() ?? 'none' }}">
+                        <tr wire:key="call-activity-{{ $service->id }}">
                             <td><p class="font-bold text-ink">{{ $service->client->name }}</p><p class="text-xs text-muted">Servicio #{{ $service->id }}</p></td>
                             <td><p class="font-semibold text-ink">{{ $service->catalogService->name }}</p><p class="font-mono text-xs text-muted">{{ $service->ip }}</p></td>
                             <td class="font-mono text-xs font-bold text-ink">{{ $service->call_monitoring_platform->label() }}</td>
@@ -66,13 +79,12 @@
                             </td>
                             <td>
                                 @if ($service->callActivity?->last_outbound_at)
-                                    <div
-                                        x-data="callActivityElapsed(@js($serverNowEpoch), @js($service->callActivity->last_outbound_at->getTimestamp()))"
-                                        class="inline-flex min-w-32 items-center rounded-xl border border-brand/20 bg-brand/[0.06] px-3 py-2"
-                                        title="Tiempo calculado desde el último intento saliente">
-                                        <span class="font-mono text-base font-black tabular-nums text-brand" x-text="label">{{ $elapsedLabels[$service->id] }}</span>
+                                    <div class="inline-flex min-w-32 items-center rounded-xl border px-3 py-2 {{ $usageAlerts[$service->id] ? 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/30' : 'border-brand/20 bg-brand/[0.06]' }}" title="Tiempo calculado desde el último intento saliente">
+                                        <span class="font-mono text-base font-black tabular-nums {{ $usageAlerts[$service->id] ? 'text-red-700 dark:text-red-300' : 'text-brand' }}">{{ $elapsedLabels[$service->id] }}</span>
                                     </div>
-                                    <p class="mt-1 text-[10px] font-bold uppercase tracking-wider text-muted">Actualización en vivo</p>
+                                    @if ($usageAlerts[$service->id])
+                                        <p class="mt-1 text-[10px] font-black uppercase tracking-wider text-red-700 dark:text-red-300">Alerta: superó {{ $noUsageAlertDescription }} sin uso</p>
+                                    @endif
                                 @else
                                     <span class="font-semibold text-muted">Sin llamadas</span>
                                 @endif
@@ -99,7 +111,7 @@
         <div class="divide-y divide-line lg:hidden">
             @forelse ($services as $service)
                 @php($serviceState = $states[$service->id])
-                <article class="p-4" wire:key="call-activity-mobile-{{ $service->id }}-{{ $service->callActivity?->last_outbound_at?->getTimestamp() ?? 'none' }}">
+                <article class="p-4" wire:key="call-activity-mobile-{{ $service->id }}">
                     <div class="flex items-start justify-between gap-3"><div><p class="font-bold text-ink">{{ $service->client->name }}</p><p class="text-sm text-muted">{{ $service->catalogService->name }} · {{ $service->ip }}</p></div><span class="shrink-0 rounded-full px-2 py-1 text-[9px] font-black uppercase {{ $serviceState->badgeClasses() }}">{{ $serviceState->label() }}</span></div>
                     <p class="mt-2 text-xs text-muted">{{ $serviceState->description() }}</p>
                     <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
@@ -107,13 +119,13 @@
                         <div><p class="text-xs text-muted">Umbral</p><p class="font-bold text-ink">{{ $service->inactivity_threshold_hours }} h</p></div>
                         <div><p class="text-xs text-muted">Último marcado</p><p class="text-ink">{{ $service->callActivity?->last_outbound_at ? $this->localDate($service->callActivity->last_outbound_at) : 'Sin llamadas' }}</p></div>
                         <div><p class="text-xs text-muted">Último reporte</p><p class="text-ink">{{ $service->callActivity?->last_reported_at ? $this->localDate($service->callActivity->last_reported_at) : 'Nunca' }}</p></div>
-                        <div class="col-span-2 rounded-xl border border-brand/20 bg-brand/[0.06] p-3">
+                        <div class="col-span-2 rounded-xl border p-3 {{ $usageAlerts[$service->id] ? 'border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/30' : 'border-brand/20 bg-brand/[0.06]' }}">
                             <p class="text-[10px] font-black uppercase tracking-[0.14em] text-muted">Tiempo sin marcar</p>
                             @if ($service->callActivity?->last_outbound_at)
-                                <div x-data="callActivityElapsed(@js($serverNowEpoch), @js($service->callActivity->last_outbound_at->getTimestamp()))">
-                                    <p class="mt-1 font-mono text-lg font-black tabular-nums text-brand" x-text="label">{{ $elapsedLabels[$service->id] }}</p>
-                                    <p class="mt-1 text-[10px] font-bold uppercase tracking-wider text-muted">Actualización en vivo</p>
-                                </div>
+                                <p class="mt-1 font-mono text-lg font-black tabular-nums {{ $usageAlerts[$service->id] ? 'text-red-700 dark:text-red-300' : 'text-brand' }}">{{ $elapsedLabels[$service->id] }}</p>
+                                @if ($usageAlerts[$service->id])
+                                    <p class="mt-1 text-[10px] font-black uppercase tracking-wider text-red-700 dark:text-red-300">Alerta: superó {{ $noUsageAlertDescription }} sin uso</p>
+                                @endif
                             @else
                                 <p class="mt-1 font-bold text-muted">Sin llamadas</p>
                             @endif

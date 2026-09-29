@@ -128,6 +128,14 @@ final class Index extends Component
             fn (?int $seconds): string => $seconds === null ? 'Sin llamadas' : $this->compactElapsed($seconds),
         );
 
+        $noUsageAlertHours = max(1, (int) config('services.call_activity.no_usage_alert_hours', 120));
+        $noUsageAlertDescription = $noUsageAlertHours % 24 === 0
+            ? sprintf('%d horas (%d %s)', $noUsageAlertHours, intdiv($noUsageAlertHours, 24), intdiv($noUsageAlertHours, 24) === 1 ? 'día' : 'días')
+            : "{$noUsageAlertHours} horas";
+        $usageAlerts = $elapsedSeconds->map(
+            fn (?int $seconds): bool => $seconds !== null && $seconds > ($noUsageAlertHours * 3600),
+        );
+
         $summary = collect(CallActivityState::cases())->mapWithKeys(fn (CallActivityState $state): array => [
             $state->value => $states->filter(fn (CallActivityState $current): bool => $current === $state)->count(),
         ]);
@@ -158,8 +166,11 @@ final class Index extends Component
             'services' => $this->paginateCollection($filteredServices),
             'states' => $states,
             'summary' => $summary,
-            'serverNowEpoch' => $serverNow->getTimestamp(),
             'elapsedLabels' => $elapsedLabels,
+            'usageAlerts' => $usageAlerts,
+            'usageAlertCount' => $usageAlerts->filter()->count(),
+            'noUsageAlertDescription' => $noUsageAlertDescription,
+            'calculatedAt' => $this->localDate($serverNow),
             'historyService' => $historyService,
             'historyReports' => $historyReports,
             'timezone' => $this->displayTimezone,

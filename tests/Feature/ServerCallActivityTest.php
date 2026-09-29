@@ -200,8 +200,8 @@ final class ServerCallActivityTest extends TestCase
             ->assertSee('Sin reporte')
             ->assertSee('Tiempo sin marcar')
             ->assertSee('4 días 4 h')
-            ->assertSee('callActivityElapsed', false)
-            ->assertSee('Actualización en vivo')
+            ->assertSee('Actualizar datos')
+            ->assertDontSee('Actualización en vivo')
             ->set('state', 'no_report')
             ->assertSee('Cliente sin reporte')
             ->call('openHistory', $service->id)
@@ -234,7 +234,7 @@ final class ServerCallActivityTest extends TestCase
         CarbonImmutable::setTestNow();
     }
 
-    public function test_panel_refresh_restarts_elapsed_time_when_a_new_outbound_call_arrives(): void
+    public function test_panel_recalculates_elapsed_time_when_refreshed_after_a_new_outbound_call(): void
     {
         CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-09-29T15:00:00Z'));
         Carbon::setTestNow(Carbon::parse('2026-09-29T15:00:00Z'));
@@ -248,7 +248,9 @@ final class ServerCallActivityTest extends TestCase
         $component = Livewire::actingAs(User::factory()->create())
             ->test(Index::class)
             ->assertSee('2 h 0 min')
-            ->assertSee('wire:poll.60s', false);
+            ->assertSee('Actualizar datos')
+            ->assertDontSee('wire:poll', false)
+            ->assertDontSee('callActivityElapsed', false);
 
         $activity->update([
             'last_outbound_at' => '2026-09-29 14:55:00',
@@ -258,6 +260,39 @@ final class ServerCallActivityTest extends TestCase
         $component->call('$refresh')
             ->assertSee('5 min 0 s')
             ->assertDontSee('2 h 0 min');
+
+        CarbonImmutable::setTestNow();
+        Carbon::setTestNow();
+    }
+
+    public function test_panel_alerts_only_after_exceeding_five_days_without_outbound_calls(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-09-29T15:00:00Z'));
+        Carbon::setTestNow(Carbon::parse('2026-09-29T15:00:00Z'));
+        config()->set('services.call_activity.no_usage_alert_hours', 120);
+
+        $atBoundary = $this->createMonitoredService('203.0.113.86', 'Cliente justo en el límite');
+        ServerCallActivity::create([
+            'contracted_service_id' => $atBoundary->id,
+            'last_outbound_at' => '2026-09-24 15:00:00',
+            'last_reported_at' => '2026-09-29 14:59:00',
+        ]);
+
+        $overBoundary = $this->createMonitoredService('203.0.113.87', 'Cliente con alerta');
+        ServerCallActivity::create([
+            'contracted_service_id' => $overBoundary->id,
+            'last_outbound_at' => '2026-09-24 14:00:00',
+            'last_reported_at' => '2026-09-29 14:59:00',
+        ]);
+
+        Livewire::actingAs(User::factory()->create())
+            ->test(Index::class)
+            ->assertSee('1 servidor supera 120 horas (5 días) sin llamadas salientes.')
+            ->assertSee('Cliente justo en el límite')
+            ->assertSee('5 días 0 h')
+            ->assertSee('Cliente con alerta')
+            ->assertSee('5 días 1 h')
+            ->assertSee('Alerta: superó 120 horas (5 días) sin uso');
 
         CarbonImmutable::setTestNow();
         Carbon::setTestNow();

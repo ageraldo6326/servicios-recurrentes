@@ -1,7 +1,7 @@
 # SDD — Monitoreo del último marcado saliente en VICIdial e Issabel
 
 **Proyecto:** PersonalSyS  
-**Versión:** 1.1  
+**Versión:** 1.2
 **Fecha:** 29 de septiembre de 2026  
 **Estado:** Especificación para implementación
 
@@ -20,6 +20,7 @@ El panel debe distinguir entre **falta de actividad de llamadas** y **falta de r
 - Autenticación inicial mediante una única clave compartida, almacenada en el `.env` de PersonalSyS y en la configuración local de los futuros scripts.
 - Registro de la última fecha de marcado y de la última fecha de reporte, por separado.
 - Panel de consulta, búsqueda, filtros, indicadores de estado y umbrales de alerta configurables.
+- Alerta visual cuando el tiempo desde el último marcado saliente supera 5 días (120 horas).
 - Historial básico de recepciones para diagnosticar fallos y verificar la continuidad de los reportes.
 - Preparación de la integración para servidores VICIdial e Issabel PBX.
 
@@ -172,7 +173,7 @@ Agregar una sección en PersonalSyS, por ejemplo **Servidores → Actividad de m
 
 La tabla incluirá búsqueda por cliente, servidor o IP; filtros por plataforma y estado; orden por mayor tiempo sin llamadas, con opción de ordenar por último reporte; y acceso al historial reciente de reportes de cada servidor. Mostrar un resumen superior con cantidades por estado.
 
-**Presentación del contador:** “Tiempo sin marcar” debe ser una columna visible, no solo una nota pequeña debajo de la fecha. Mostrar, por ejemplo, `3 min 17 s`, `5 h 24 min` o `2 días 4 h`. Si no hay llamada registrada, mostrar `Sin llamadas` en lugar de calcular una duración. El contador se calcula desde `last_outbound_at` (UTC), no desde `last_reported_at`, y se actualiza al menos una vez por minuto mientras el panel está abierto. La consulta del panel debe refrescar los datos del servidor periódicamente (valor inicial: cada 60 segundos) para detectar reportes nuevos y reiniciar el contador sin recargar manualmente la página. Usar una referencia horaria del servidor o un desfase calculado para evitar errores por un reloj local desajustado; después de la carga, el conteo visual puede avanzar en el navegador. La fecha exacta seguirá visible para auditoría.
+**Presentación del tiempo transcurrido:** “Tiempo sin marcar” debe ser una columna visible, no solo una nota pequeña debajo de la fecha. Mostrar, por ejemplo, `3 min 17 s`, `5 h 24 min` o `2 días 4 h`. Si no hay llamada registrada, mostrar `Sin llamadas` en lugar de calcular una duración. El valor se calcula en el servidor desde `last_outbound_at` (UTC) hasta la hora actual al cargar el panel o pulsar “Actualizar datos”; no avanza en vivo ni provoca consultas automáticas mientras la página permanece abierta. La fecha exacta seguirá visible para auditoría.
 
 ### 7.2 Estados y prioridad
 
@@ -185,6 +186,8 @@ La tabla incluirá búsqueda por cliente, servidor o IP; filtros por plataforma 
 | Reporta dentro del plazo y el marcado está dentro del umbral | Activo | Uso reciente confirmado por un intento saliente. |
 
 **Prioridad:** “Sin reporte” prevalece sobre “Inactivo”; en ambos casos se sigue mostrando la fecha histórica del último marcado. De este modo el panel no afirma que el cliente dejó de llamar cuando el sistema ya no tiene datos recientes. La alerta se calcula con el reloj de PersonalSyS y las fechas UTC almacenadas.
+
+Además de los estados configurables por servidor, el panel muestra una alerta operacional destacada cuando han transcurrido **más de 5 días (120 horas)** desde `last_outbound_at`. El límite es estricto: exactamente 120 horas todavía no activa la alerta. Esta advertencia no cambia el estado contractual, no suspende el servicio y no reemplaza la alerta por falta de reportes.
 
 Para la primera puesta en marcha se proponen **48 horas sin marcado** y **36 horas sin reporte** como valores predeterminados editables. Estos números son parámetros iniciales, no una regla fija para todos los clientes. Si se requiere una vigilancia más rápida que un día, los scripts tendrán que reportar con mayor frecuencia.
 
@@ -227,7 +230,8 @@ Para la primera puesta en marcha se proponen **48 horas sin marcado** y **36 hor
 8. El administrador puede ajustar los plazos por servidor y consultar los reportes recientes.
 9. La clave permanece fuera del código fuente, la base de datos de actividad, las respuestas públicas y los logs.
 10. La solución se integra con los clientes y servidores existentes sin duplicar sus registros.
-11. Cada fila muestra de forma destacada “Tiempo sin marcar”; su valor avanza mientras la página permanece abierta y refleja un nuevo marcado recibido por la API sin exigir recarga manual.
+11. Cada fila muestra de forma destacada “Tiempo sin marcar”, calculado desde `last_outbound_at` hasta la hora actual del servidor al cargar o actualizar manualmente el panel; el valor no avanza en vivo.
+12. El panel muestra una alerta visual cuando el tiempo sin marcado supera 5 días (120 horas), sin activarla exactamente en el límite.
 
 ## 11. Decisiones para la siguiente etapa
 

@@ -60,6 +60,7 @@ return [
         'requests_per_minute' => (int) env('CALL_ACTIVITY_REQUESTS_PER_MINUTE', 60),
         'default_inactivity_threshold_hours' => (int) env('CALL_ACTIVITY_DEFAULT_INACTIVITY_HOURS', 48),
         'default_report_delay_threshold_hours' => (int) env('CALL_ACTIVITY_DEFAULT_REPORT_DELAY_HOURS', 36),
+        'no_usage_alert_hours' => (int) env('CALL_ACTIVITY_NO_USAGE_ALERT_HOURS', 120),
         'report_retention_days' => (int) env('CALL_ACTIVITY_REPORT_RETENTION_DAYS', 90),
     ],
 
