@@ -445,10 +445,12 @@ class ContractedServiceModuleTest extends TestCase
             ->assertRedirect()
             ->assertSessionHas('success');
 
-        $this->assertDatabaseHas('charges', ['contracted_service_id' => $service->id, 'status' => 'paid']);
+        $charge = Charge::where('contracted_service_id', $service->id)->where('status', 'paid')->firstOrFail();
+        $this->assertDatabaseHas('charges', ['id' => $charge->id, 'contracted_service_id' => $service->id, 'status' => 'paid']);
         $this->assertDatabaseHas('payments', ['amount' => 50, 'status' => 'validated']);
         $this->assertDatabaseHas('gestions', [
             'contracted_service_id' => $service->id,
+            'charge_id' => $charge->id,
             'type' => 'Pago recibido',
             'result' => 'El cliente envió el pago sin contacto previo.',
         ]);

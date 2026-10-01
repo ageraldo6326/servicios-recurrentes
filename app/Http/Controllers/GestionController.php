@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ChargeStatus;
 use App\Models\Client;
 use App\Models\ContractedService;
 use App\Models\Gestion;
@@ -12,7 +13,12 @@ class GestionController extends Controller
     public function index(Request $request)
     {
         $search = trim((string) $request->query('search', ''));
-        $gestions = Gestion::with('client', 'contractedService.catalogService')->when($search !== '', fn ($query) => $query->where('type', 'like', "%{$search}%")->orWhere('result', 'like', "%{$search}%")->orWhereHas('client', fn ($client) => $client->where('name', 'like', "%{$search}%")))->latest('occurred_at')->paginate(20)->withQueryString();
+        $gestions = Gestion::with([
+            'client',
+            'charge',
+            'contractedService.catalogService',
+            'contractedService.charges' => fn ($query) => $query->where('status', ChargeStatus::Paid),
+        ])->when($search !== '', fn ($query) => $query->where('type', 'like', "%{$search}%")->orWhere('result', 'like', "%{$search}%")->orWhereHas('client', fn ($client) => $client->where('name', 'like', "%{$search}%")))->latest('occurred_at')->paginate(20)->withQueryString();
 
         return view('gestions.index', compact('gestions', 'search'));
     }

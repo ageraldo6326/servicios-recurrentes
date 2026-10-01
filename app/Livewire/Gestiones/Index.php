@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Gestiones;
 
+use App\Enums\ChargeStatus;
 use App\Models\Gestion;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
@@ -31,7 +32,12 @@ class Index extends Component
     public function render(): View
     {
         $gestions = Gestion::query()
-            ->with(['client', 'contractedService.catalogService'])
+            ->with([
+                'client',
+                'charge',
+                'contractedService.catalogService',
+                'contractedService.charges' => fn ($query) => $query->where('status', ChargeStatus::Paid),
+            ])
             ->when($this->search !== '', function ($query): void {
                 $term = "%{$this->search}%";
                 $query->where(function ($query) use ($term): void {

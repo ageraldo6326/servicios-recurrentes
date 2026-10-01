@@ -117,6 +117,7 @@ class ContractedServiceController extends Controller
             Gestion::create([
                 'client_id' => $contractedService->client_id,
                 'contracted_service_id' => $contractedService->id,
+                'charge_id' => $charge->id,
                 'type' => 'Pago recibido',
                 'occurred_at' => now(),
                 'result' => 'El cliente envió el pago sin contacto previo.',
