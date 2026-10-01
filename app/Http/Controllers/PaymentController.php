@@ -14,7 +14,10 @@ class PaymentController extends Controller
     public function index(Request $request)
     {
         $search = trim((string) $request->query('search', ''));
-        $payments = Payment::with('charges.contractedService.client')->when($search !== '', fn ($query) => $query->where('currency', 'like', "%{$search}%")->orWhere('status', 'like', "%{$search}%"))->latest('received_at')->paginate(20)->withQueryString();
+        $payments = Payment::with([
+            'charges.contractedService.client',
+            'charges.contractedService.catalogService',
+        ])->when($search !== '', fn ($query) => $query->where('currency', 'like', "%{$search}%")->orWhere('status', 'like', "%{$search}%"))->latest('received_at')->paginate(20)->withQueryString();
 
         return view('payments.index', compact('payments', 'search'));
     }

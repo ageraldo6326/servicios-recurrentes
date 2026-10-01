@@ -59,7 +59,7 @@
             </div>
         </fieldset>
 
-        <label class="md:col-span-2">Observaciones<textarea class="input" name="observations">{{ old('observations', $service->observations) }}</textarea></label>
+        <label class="md:col-span-2">Descripción<textarea class="input" name="observations">{{ old('observations', $service->observations) }}</textarea></label>
         <button class="button md:col-span-2">Guardar</button>
     </form>
 @endsection

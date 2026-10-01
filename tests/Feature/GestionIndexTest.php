@@ -25,8 +25,20 @@ class GestionIndexTest extends TestCase
         $managedPbx = CatalogService::create(['name' => 'PBX administrada', 'is_active' => true]);
         $backupVps = CatalogService::create(['name' => 'VPS de respaldo', 'is_active' => true]);
 
-        $managedPbxContract = $this->createContractedService($client, $managedPbx, $provider);
-        $this->createContractedService($client, $backupVps, $provider);
+        $managedPbxContract = $this->createContractedService(
+            $client,
+            $managedPbx,
+            $provider,
+            'Central principal del cliente',
+            '203.0.113.25',
+        );
+        $this->createContractedService(
+            $client,
+            $backupVps,
+            $provider,
+            'Servidor secundario',
+            '203.0.113.99',
+        );
 
         Gestion::create([
             'client_id' => $client->id,
@@ -40,13 +52,18 @@ class GestionIndexTest extends TestCase
             ->assertOk()
             ->assertSee('Servicio contratado')
             ->assertSee('PBX administrada')
-            ->assertDontSee('VPS de respaldo');
+            ->assertSee('Central principal del cliente')
+            ->assertSee('203.0.113.25')
+            ->assertDontSee('VPS de respaldo')
+            ->assertDontSee('203.0.113.99');
     }
 
     private function createContractedService(
         Client $client,
         CatalogService $catalogService,
         Provider $provider,
+        string $description,
+        string $ip,
     ): ContractedService {
         return ContractedService::create([
             'client_id' => $client->id,
@@ -59,6 +76,8 @@ class GestionIndexTest extends TestCase
             'billing_day' => 15,
             'status' => ContractedServiceStatus::Active,
             'starts_at' => '2026-09-01',
+            'observations' => $description,
+            'ip' => $ip,
         ]);
     }
 }
