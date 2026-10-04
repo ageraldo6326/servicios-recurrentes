@@ -285,6 +285,25 @@ class FollowUp extends Component
 
     private function billingDate(ContractedService $service): CarbonImmutable
     {
+        $latestPaidCharge = $service->charges
+            ->filter(fn (Charge $charge): bool => $charge->status === ChargeStatus::Paid && $charge->due_date !== null)
+            ->sortByDesc(fn (Charge $charge): int => $charge->due_date->timestamp)
+            ->first();
+
+        if ($latestPaidCharge !== null) {
+            $paidThroughDate = CarbonImmutable::parse(
+                $latestPaidCharge->due_date->toDateString(),
+                $this->evaluationNow()->getTimezone(),
+            )->startOfDay();
+            $nextBillingDate = $this->billingDateForMonth($service, $paidThroughDate->startOfMonth());
+
+            if ($nextBillingDate->lte($paidThroughDate)) {
+                $nextBillingDate = $this->billingDateForMonth($service, $paidThroughDate->startOfMonth()->addMonth());
+            }
+
+            return $nextBillingDate;
+        }
+
         $month = $this->evaluationNow()->startOfMonth();
         $currentBillingDate = $this->billingDateForMonth($service, $month);
 

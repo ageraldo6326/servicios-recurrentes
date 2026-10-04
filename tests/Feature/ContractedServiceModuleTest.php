@@ -253,6 +253,48 @@ class ContractedServiceModuleTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_follow_up_lists_each_service_when_the_period_after_its_latest_payment_was_not_charged(): void
+    {
+        [$client, $catalogService, $provider] = $this->entities();
+        $client->update(['name' => 'Cliente con cuatro períodos pendientes']);
+        $services = collect();
+
+        foreach (range(1, 4) as $number) {
+            $service = ContractedService::create([
+                ...$this->payload($client, $catalogService, $provider),
+                'billing_day' => 30,
+                'status' => ContractedServiceStatus::Active,
+                'observations' => "Servicio contratado {$number}",
+            ]);
+            Charge::create([
+                'contracted_service_id' => $service->id,
+                'status' => ChargeStatus::Paid,
+                'amount' => 50,
+                'currency' => 'USD',
+                'due_date' => '2026-08-30',
+            ]);
+            $services->push($service);
+        }
+
+        CompanySetting::create([
+            'timezone' => 'America/Santo_Domingo',
+            'upcoming_due_days' => 15,
+        ]);
+        Carbon::setTestNow(Carbon::parse('2026-10-04 12:00:00', 'America/Santo_Domingo'));
+
+        Livewire::test(FollowUp::class)
+            ->assertViewHas('services', function ($visibleServices) use ($services): bool {
+                return $visibleServices->count() === 4
+                    && $visibleServices->pluck('id')->sort()->values()->all() === $services->pluck('id')->sort()->values()->all()
+                    && $visibleServices->every(fn (ContractedService $service): bool => $service->follow_up_type === 'charge_overdue'
+                        && $service->billing_date->toDateString() === '2026-09-30');
+            })
+            ->assertSee('30/09/2026')
+            ->assertSee('4 días');
+
+        Carbon::setTestNow();
+    }
+
     public function test_follow_up_dashboard_uses_the_contracted_service_billing_day_without_manual_charge(): void
     {
         [$client, $catalogService, $provider] = $this->entities();
