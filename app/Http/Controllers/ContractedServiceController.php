@@ -9,15 +9,22 @@ use App\Http\Requests\ContractedServiceRequest;
 use App\Models\CatalogService;
 use App\Models\Charge;
 use App\Models\Client;
+use App\Models\CompanySetting;
 use App\Models\ContractedService;
 use App\Models\Gestion;
 use App\Models\Payment;
 use App\Models\Provider;
+use App\Services\ContractedServiceBillingPeriodService;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ContractedServiceController extends Controller
 {
+    public function __construct(
+        private readonly ContractedServiceBillingPeriodService $billingPeriods,
+    ) {}
+
     public function index()
     {
         return view('contracted-services.index', ['services' => ContractedService::with('client', 'catalogService', 'provider')->orderByDesc('contracted_services.created_at')->orderBy(Client::select('name')->whereColumn('clients.id', 'contracted_services.client_id'))->paginate(15)]);
@@ -77,7 +84,11 @@ class ContractedServiceController extends Controller
         abort_unless($contractedService->status === ContractedServiceStatus::Active, 422, 'Solo se pueden pagar servicios activos.');
 
         DB::transaction(function () use ($contractedService): void {
-            $billingDate = now()->startOfMonth()->day(min((int) $contractedService->billing_day, now()->daysInMonth));
+            $contractedService->loadMissing('charges');
+            $billingDate = $this->billingPeriods->oldestUnpaidDueDate(
+                $contractedService,
+                CarbonImmutable::now(CompanySetting::configuredTimezone())->startOfDay(),
+            );
             $charge = $contractedService->charges()
                 ->with('payments')
                 ->whereDate('due_date', $billingDate)

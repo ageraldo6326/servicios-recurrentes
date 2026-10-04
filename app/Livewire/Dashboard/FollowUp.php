@@ -3,6 +3,7 @@
 namespace App\Livewire\Dashboard;
 
 use App\Enums\ChargeStatus;
+use App\Enums\ContractedServiceStatus;
 use App\Enums\PaymentStatus;
 use App\Models\CatalogService;
 use App\Models\Charge;
@@ -10,6 +11,7 @@ use App\Models\CompanySetting;
 use App\Models\ContractedService;
 use App\Models\Gestion;
 use App\Models\Provider;
+use App\Services\ContractedServiceBillingPeriodService;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
@@ -20,6 +22,8 @@ use Livewire\Component;
 #[Layout('layouts.app')]
 class FollowUp extends Component
 {
+    private ContractedServiceBillingPeriodService $billingPeriods;
+
     private ?CarbonImmutable $evaluationNow = null;
 
     private ?int $upcomingDueDays = null;
@@ -38,6 +42,11 @@ class FollowUp extends Component
 
     #[Url]
     public string $type = 'all';
+
+    public function boot(ContractedServiceBillingPeriodService $billingPeriods): void
+    {
+        $this->billingPeriods = $billingPeriods;
+    }
 
     public function updatedSearch(): void
     {
@@ -160,6 +169,10 @@ class FollowUp extends Component
 
     private function followUpType(ContractedService $service): ?string
     {
+        if ($service->status !== ContractedServiceStatus::Active) {
+            return null;
+        }
+
         $now = $this->evaluationNow();
         $today = $now->startOfDay();
         $promise = $this->activePromise($service);
@@ -285,67 +298,23 @@ class FollowUp extends Component
 
     private function billingDate(ContractedService $service): CarbonImmutable
     {
-        $latestPaidCharge = $service->charges
-            ->filter(fn (Charge $charge): bool => $charge->status === ChargeStatus::Paid && $charge->due_date !== null)
-            ->sortByDesc(fn (Charge $charge): int => $charge->due_date->timestamp)
-            ->first();
-
-        if ($latestPaidCharge !== null) {
-            $paidThroughDate = CarbonImmutable::parse(
-                $latestPaidCharge->due_date->toDateString(),
-                $this->evaluationNow()->getTimezone(),
-            )->startOfDay();
-            $nextBillingDate = $this->billingDateForMonth($service, $paidThroughDate->startOfMonth());
-
-            if ($nextBillingDate->lte($paidThroughDate)) {
-                $nextBillingDate = $this->billingDateForMonth($service, $paidThroughDate->startOfMonth()->addMonth());
-            }
-
-            return $nextBillingDate;
-        }
-
-        $month = $this->evaluationNow()->startOfMonth();
-        $currentBillingDate = $this->billingDateForMonth($service, $month);
-
-        if ($currentBillingDate->gte($this->evaluationNow()->startOfDay())) {
-            return $currentBillingDate;
-        }
-
-        $currentBillingCharge = $service->charges
-            ->filter(fn ($charge): bool => $charge->due_date?->isSameDay($currentBillingDate))
-            ->sortByDesc('created_at')
-            ->first();
-
-        if ($currentBillingCharge?->status !== ChargeStatus::Paid) {
-            return $currentBillingDate;
-        }
-
-        return $this->billingDateForMonth($service, $month->addMonth());
-    }
-
-    private function billingDateForMonth(ContractedService $service, CarbonImmutable $month): CarbonImmutable
-    {
-        return $month->day(min((int) $service->billing_day, $month->daysInMonth));
+        return $this->billingPeriods->oldestUnpaidDueDate($service, $this->evaluationNow());
     }
 
     private function overdueDays(ContractedService $service): int
     {
         $today = $this->evaluationNow()->startOfDay();
-        $dueDate = $this->oldestOverdueCharge($service)?->due_date;
+        $dueDate = $this->billingDate($service);
+        $billingCharge = $service->charges
+            ->filter(fn ($charge): bool => $charge->due_date?->isSameDay($dueDate))
+            ->sortByDesc('created_at')
+            ->first();
 
-        if ($dueDate === null) {
-            $billingDate = $this->billingDate($service);
-            $billingCharge = $service->charges
-                ->filter(fn ($charge): bool => $charge->due_date?->isSameDay($billingDate))
-                ->sortByDesc('created_at')
-                ->first();
-
-            if (($billingCharge === null || $billingCharge->status !== ChargeStatus::Paid) && $billingDate->lt($today)) {
-                $dueDate = $billingDate;
-            }
+        if ($billingCharge?->status === ChargeStatus::Paid || ! $dueDate->lt($today)) {
+            return 0;
         }
 
-        return $dueDate?->diffInDays($today) ?? 0;
+        return (int) $dueDate->diffInDays($today);
     }
 
     private function daysUntilBilling(ContractedService $service): int

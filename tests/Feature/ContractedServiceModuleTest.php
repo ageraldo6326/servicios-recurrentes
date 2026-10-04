@@ -263,6 +263,7 @@ class ContractedServiceModuleTest extends TestCase
             $service = ContractedService::create([
                 ...$this->payload($client, $catalogService, $provider),
                 'billing_day' => 30,
+                'starts_at' => '2026-07-30',
                 'status' => ContractedServiceStatus::Active,
                 'observations' => "Servicio contratado {$number}",
             ]);
@@ -295,19 +296,90 @@ class ContractedServiceModuleTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_follow_up_keeps_a_never_paid_active_service_visible_from_its_first_uncovered_period(): void
+    {
+        [$client, $catalogService, $provider] = $this->entities();
+        $service = ContractedService::create([
+            ...$this->payload($client, $catalogService, $provider),
+            'billing_day' => 15,
+            'starts_at' => '2025-01-15',
+            'status' => ContractedServiceStatus::Active,
+        ]);
+        Carbon::setTestNow(Carbon::parse('2026-10-04 12:00:00', 'America/Santo_Domingo'));
+
+        Livewire::test(FollowUp::class)
+            ->assertViewHas('services', fn ($services): bool => $services->contains(fn (ContractedService $visibleService): bool => $visibleService->is($service)
+                && $visibleService->follow_up_type === 'charge_overdue'
+                && $visibleService->billing_date->toDateString() === '2025-02-15'));
+
+        Carbon::setTestNow();
+    }
+
+    public function test_follow_up_keeps_an_older_missing_period_visible_even_when_a_later_period_was_paid(): void
+    {
+        [$client, $catalogService, $provider] = $this->entities();
+        $service = ContractedService::create([
+            ...$this->payload($client, $catalogService, $provider),
+            'billing_day' => 15,
+            'starts_at' => '2026-07-15',
+            'status' => ContractedServiceStatus::Active,
+        ]);
+        foreach (['2026-08-15', '2026-10-15'] as $dueDate) {
+            Charge::create([
+                'contracted_service_id' => $service->id,
+                'status' => ChargeStatus::Paid,
+                'amount' => 50,
+                'currency' => 'USD',
+                'due_date' => $dueDate,
+            ]);
+        }
+        Carbon::setTestNow(Carbon::parse('2026-11-01 12:00:00', 'America/Santo_Domingo'));
+
+        Livewire::test(FollowUp::class)
+            ->assertViewHas('services', fn ($services): bool => $services->contains(fn (ContractedService $visibleService): bool => $visibleService->is($service)
+                && $visibleService->follow_up_type === 'charge_overdue'
+                && $visibleService->billing_date->toDateString() === '2026-09-15'));
+
+        Carbon::setTestNow();
+    }
+
+    public function test_follow_up_does_not_collect_a_cancelled_service_even_when_all_statuses_are_selected(): void
+    {
+        [$client, $catalogService, $provider] = $this->entities();
+        $service = ContractedService::create([
+            ...$this->payload($client, $catalogService, $provider),
+            'billing_day' => 15,
+            'starts_at' => '2025-01-15',
+            'status' => ContractedServiceStatus::Cancelled,
+            'cancelled_at' => '2026-09-01 10:00:00',
+            'cancellation_reason' => 'Servicio terminado',
+        ]);
+        Carbon::setTestNow(Carbon::parse('2026-10-04 12:00:00', 'America/Santo_Domingo'));
+
+        Livewire::test(FollowUp::class)
+            ->set('status', 'all')
+            ->assertViewHas('services', fn ($services): bool => $services->doesntContain(fn (ContractedService $visibleService): bool => $visibleService->is($service)));
+
+        Carbon::setTestNow();
+    }
+
     public function test_follow_up_dashboard_uses_the_contracted_service_billing_day_without_manual_charge(): void
     {
+        Carbon::setTestNow(Carbon::parse('2026-10-15 12:00:00', 'America/Santo_Domingo'));
         [$client, $catalogService, $provider] = $this->entities();
         ContractedService::create([
             ...$this->payload($client, $catalogService, $provider),
-            'billing_day' => now()->day,
+            'billing_day' => 15,
+            'starts_at' => '2026-09-15',
             'status' => ContractedServiceStatus::Active,
         ]);
 
         $this->get(route('dashboard'))
             ->assertOk()
             ->assertSee('Cobro de hoy')
-            ->assertSee('Día '.now()->day);
+            ->assertSee('Día 15');
+
+        Carbon::setTestNow();
     }
 
     public function test_follow_up_uses_the_configured_company_timezone_for_day_boundaries(): void
@@ -316,6 +388,7 @@ class ContractedServiceModuleTest extends TestCase
         ContractedService::create([
             ...$this->payload($client, $catalogService, $provider),
             'billing_day' => 12,
+            'starts_at' => '2026-07-12',
             'status' => ContractedServiceStatus::Active,
         ]);
         CompanySetting::create(['timezone' => 'America/Santo_Domingo']);
@@ -335,6 +408,7 @@ class ContractedServiceModuleTest extends TestCase
         ContractedService::create([
             ...$this->payload($client, $catalogService, $provider),
             'billing_day' => 8,
+            'starts_at' => '2026-07-08',
             'status' => ContractedServiceStatus::Active,
         ]);
         CompanySetting::create([
@@ -363,6 +437,7 @@ class ContractedServiceModuleTest extends TestCase
         $service = ContractedService::create([
             ...$this->payload($client, $catalogService, $provider),
             'billing_day' => 5,
+            'starts_at' => '2026-07-05',
             'status' => ContractedServiceStatus::Active,
         ]);
         CompanySetting::create([
@@ -391,7 +466,7 @@ class ContractedServiceModuleTest extends TestCase
     public function test_follow_up_orders_upcoming_billings_by_days_remaining(): void
     {
         $this->createUpcomingService('Cliente siete días', 5, '2026-08-05');
-        $this->createUpcomingService('Cliente un día', 30);
+        $this->createUpcomingService('Cliente un día', 30, '2026-07-30');
         $this->createUpcomingService('Cliente cuatro días', 2, '2026-08-02');
         CompanySetting::create([
             'timezone' => 'America/Santo_Domingo',
@@ -413,9 +488,9 @@ class ContractedServiceModuleTest extends TestCase
     public function test_follow_up_groups_a_clients_services_with_the_same_upcoming_billing_date(): void
     {
         $client = Client::create(['name' => 'Cliente agrupado', 'phone' => '8090000000']);
-        $this->createUpcomingService('Cliente externo', 30, null, 'Servicio central');
-        $this->createUpcomingService('Cliente agrupado', 30, null, 'Servicio Z', $client);
-        $this->createUpcomingService('Cliente agrupado', 30, null, 'Servicio A', $client);
+        $this->createUpcomingService('Cliente externo', 30, '2026-07-30', 'Servicio central');
+        $this->createUpcomingService('Cliente agrupado', 30, '2026-07-30', 'Servicio Z', $client);
+        $this->createUpcomingService('Cliente agrupado', 30, '2026-07-30', 'Servicio A', $client);
         CompanySetting::create([
             'timezone' => 'America/Santo_Domingo',
             'upcoming_due_days' => 7,
@@ -442,6 +517,7 @@ class ContractedServiceModuleTest extends TestCase
         $service = ContractedService::create([
             ...$this->payload($client, $catalogService, $provider),
             'billing_day' => 18,
+            'starts_at' => '2026-07-18',
             'status' => ContractedServiceStatus::Active,
         ]);
         Gestion::create([
@@ -488,6 +564,7 @@ class ContractedServiceModuleTest extends TestCase
             $services->push(ContractedService::create([
                 ...$this->payload($client, $catalogService, $provider),
                 'billing_day' => 15,
+                'starts_at' => '2026-08-15',
                 'status' => ContractedServiceStatus::Active,
             ]));
         }
@@ -522,6 +599,38 @@ class ContractedServiceModuleTest extends TestCase
             'contracted_service_id' => $services->get(1)->id,
             'status' => ChargeStatus::Paid->value,
         ]);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_marking_as_paid_covers_the_oldest_unpaid_period_and_keeps_the_next_debt_visible(): void
+    {
+        [$client, $catalogService, $provider] = $this->entities();
+        $service = ContractedService::create([
+            ...$this->payload($client, $catalogService, $provider),
+            'billing_day' => 15,
+            'starts_at' => '2026-07-15',
+            'status' => ContractedServiceStatus::Active,
+        ]);
+        CompanySetting::create(['timezone' => 'America/Santo_Domingo', 'upcoming_due_days' => 15]);
+        Carbon::setTestNow(Carbon::parse('2026-10-04 12:00:00', 'America/Santo_Domingo'));
+
+        $this->post(route('contracted-services.mark-paid', $service))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('charges', [
+            'contracted_service_id' => $service->id,
+            'status' => ChargeStatus::Paid->value,
+            'due_date' => '2026-08-15 00:00:00',
+        ]);
+        $this->assertDatabaseMissing('charges', [
+            'contracted_service_id' => $service->id,
+            'due_date' => '2026-10-15 00:00:00',
+        ]);
+        Livewire::test(FollowUp::class)
+            ->assertViewHas('services', fn ($services): bool => $services->contains(fn (ContractedService $visibleService): bool => $visibleService->is($service)
+                && $visibleService->billing_date->toDateString() === '2026-09-15'));
 
         Carbon::setTestNow();
     }
@@ -569,6 +678,9 @@ class ContractedServiceModuleTest extends TestCase
         $service = ContractedService::create([
             ...$this->payload($client, $catalogService, $provider),
             'billing_day' => $billingDay,
+            'starts_at' => $paidDueDate === null
+                ? '2026-07-01'
+                : Carbon::parse($paidDueDate)->subMonthNoOverflow()->toDateString(),
             'status' => ContractedServiceStatus::Active,
         ]);
         if ($paidDueDate !== null) {
