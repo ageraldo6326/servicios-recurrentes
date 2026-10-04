@@ -432,6 +432,58 @@ class ContractedServiceModuleTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_paying_one_service_keeps_the_same_clients_other_unpaid_services_in_follow_up(): void
+    {
+        $client = Client::create(['name' => 'Cliente con múltiples servicios', 'phone' => '8090000000']);
+        $provider = Provider::create(['name' => 'Proveedor', 'payment_method' => 'Mensual']);
+        $services = collect();
+
+        foreach (range(1, 5) as $number) {
+            $catalogService = CatalogService::create([
+                'name' => "Servicio {$number}",
+                'is_active' => true,
+            ]);
+            $services->push(ContractedService::create([
+                ...$this->payload($client, $catalogService, $provider),
+                'billing_day' => 15,
+                'status' => ContractedServiceStatus::Active,
+            ]));
+        }
+
+        CompanySetting::create([
+            'timezone' => 'America/Santo_Domingo',
+            'upcoming_due_days' => 7,
+        ]);
+        Carbon::setTestNow(Carbon::parse('2026-09-20 12:00:00', 'America/Santo_Domingo'));
+
+        $this->post(route('contracted-services.mark-paid', $services->first()))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        Livewire::test(FollowUp::class)
+            ->assertViewHas('services', function ($visibleServices) use ($services): bool {
+                return $visibleServices->count() === 4
+                    && $visibleServices->pluck('id')->sort()->values()->all() === $services->skip(1)->pluck('id')->sort()->values()->all();
+            })
+            ->assertSee('Servicio 2')
+            ->assertSee('Servicio 3')
+            ->assertSee('Servicio 4')
+            ->assertSee('Servicio 5')
+            ->assertSee('wire:key="follow-up-service-'.$services->get(1)->id.'"', false)
+            ->assertSee('wire:key="follow-up-service-'.$services->get(4)->id.'"', false);
+
+        $this->assertDatabaseHas('charges', [
+            'contracted_service_id' => $services->first()->id,
+            'status' => ChargeStatus::Paid->value,
+        ]);
+        $this->assertDatabaseMissing('charges', [
+            'contracted_service_id' => $services->get(1)->id,
+            'status' => ChargeStatus::Paid->value,
+        ]);
+
+        Carbon::setTestNow();
+    }
+
     public function test_marking_a_service_as_paid_registers_payment_and_automatic_gestion(): void
     {
         [$client, $catalogService, $provider] = $this->entities();

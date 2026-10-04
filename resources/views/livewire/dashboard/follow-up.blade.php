@@ -49,7 +49,7 @@
                     default => 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300',
                 };
             @endphp
-            <article class="rounded-2xl border p-5 shadow-card sm:p-6 {{ $typeClasses }}">
+            <article wire:key="follow-up-service-{{ $service->id }}" class="rounded-2xl border p-5 shadow-card sm:p-6 {{ $typeClasses }}">
                 <div class="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                     <div class="min-w-0 flex-1">
                         <div class="flex flex-wrap items-center gap-2">
