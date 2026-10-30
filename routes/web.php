@@ -66,6 +66,7 @@ Route::middleware(['auth'])->group(function (): void {
     Route::resource('charges', ChargeController::class)->only(['create', 'store']);
     Route::resource('payments', PaymentController::class)->only(['index', 'create', 'store']);
     Route::post('payments/{payment}/validate', [PaymentController::class, 'validatePayment'])->name('payments.validate');
+    Route::post('payments/{payment}/reject', [PaymentController::class, 'reject'])->name('payments.reject');
     Route::get('gestions', GestionesIndex::class)->name('gestions.index');
     Route::get('descansos', BreaksDashboard::class)->name('breaks.dashboard');
     Route::get('agenda', TasksIndex::class)->name('tasks.index');

@@ -83,7 +83,7 @@ class ContractedServiceController extends Controller
     {
         abort_unless($contractedService->status === ContractedServiceStatus::Active, 422, 'Solo se pueden pagar servicios activos.');
 
-        DB::transaction(function () use ($contractedService): void {
+        $paidDueDate = DB::transaction(function () use ($contractedService): string {
             $contractedService->loadMissing('charges');
             $billingDate = $this->billingPeriods->oldestUnpaidDueDate(
                 $contractedService,
@@ -111,7 +111,9 @@ class ContractedServiceController extends Controller
                 $charge->update(['status' => ChargeStatus::Paid]);
             }
 
-            $allocatedAmount = $charge->fresh('payments')->payments->sum(fn (Payment $payment): float => (float) $payment->pivot->amount);
+            $allocatedAmount = $charge->fresh('payments')->payments
+                ->filter(fn (Payment $payment): bool => $payment->status === PaymentStatus::Validated)
+                ->sum(fn (Payment $payment): float => (float) $payment->pivot->amount);
             $remainingAmount = max(0, (float) $charge->amount - $allocatedAmount);
 
             if ($remainingAmount > 0) {
@@ -134,8 +136,10 @@ class ContractedServiceController extends Controller
                 'result' => 'El cliente envió el pago sin contacto previo.',
                 'observations' => 'Pago marcado desde el Dashboard de Seguimiento.',
             ]);
+
+            return $charge->due_date->format('d/m/Y');
         });
 
-        return back()->with('success', 'Pago registrado y servicio preparado para el próximo período.');
+        return back()->with('success', "Pago registrado para el período con vencimiento {$paidDueDate}. El servicio quedó preparado para el próximo período.");
     }
 }

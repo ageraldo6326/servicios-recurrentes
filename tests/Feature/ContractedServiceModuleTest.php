@@ -343,6 +343,52 @@ class ContractedServiceModuleTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_follow_up_keeps_a_day_thirty_service_visible_when_a_later_period_was_paid_first(): void
+    {
+        [$client, $catalogService, $provider] = $this->entities();
+        $client->update(['name' => 'Cliente con período anterior pendiente']);
+        $service = ContractedService::create([
+            ...$this->payload($client, $catalogService, $provider),
+            'billing_day' => 30,
+            'starts_at' => '2026-07-30',
+            'status' => ContractedServiceStatus::Active,
+        ]);
+
+        foreach (['2026-08-30', '2026-10-30'] as $dueDate) {
+            Charge::create([
+                'contracted_service_id' => $service->id,
+                'status' => ChargeStatus::Paid,
+                'amount' => 50,
+                'currency' => 'USD',
+                'due_date' => $dueDate,
+            ]);
+        }
+
+        Carbon::setTestNow(Carbon::parse('2026-10-30 12:00:00', 'America/Santo_Domingo'));
+
+        Livewire::test(FollowUp::class)
+            ->assertViewHas('services', fn ($services): bool => $services->contains(fn (ContractedService $visibleService): bool => $visibleService->is($service)
+                && $visibleService->follow_up_type === 'charge_overdue'
+                && $visibleService->billing_date->toDateString() === '2026-09-30'))
+            ->assertSee('¿Confirmas el pago del período con vencimiento 30/09/2026?', false);
+
+        $this->post(route('contracted-services.mark-paid', $service))
+            ->assertRedirect()
+            ->assertSessionHas('success', 'Pago registrado para el período con vencimiento 30/09/2026. El servicio quedó preparado para el próximo período.');
+
+        $this->assertDatabaseHas('charges', [
+            'contracted_service_id' => $service->id,
+            'status' => ChargeStatus::Paid->value,
+            'due_date' => '2026-09-30 00:00:00',
+        ]);
+        $this->assertDatabaseMissing('charges', [
+            'contracted_service_id' => $service->id,
+            'due_date' => '2026-11-30 00:00:00',
+        ]);
+
+        Carbon::setTestNow();
+    }
+
     public function test_follow_up_does_not_collect_a_cancelled_service_even_when_all_statuses_are_selected(): void
     {
         [$client, $catalogService, $provider] = $this->entities();

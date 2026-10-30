@@ -65,7 +65,7 @@
                         <a class="button-secondary" href="tel:{{ $service->client->phone }}">Llamar</a>
                         <a class="button" href="{{ route('gestions.create', ['client_id' => $service->client_id, 'contracted_service_id' => $service->id]) }}">Registrar gestión</a>
                         @if($service->status->value === 'active')
-                            <form method="post" action="{{ route('contracted-services.mark-paid', $service) }}" class="inline">@csrf<button class="button bg-emerald-600 hover:bg-emerald-700" onclick="return confirm('¿Confirmas que este servicio contratado fue pagado?')">✓ Marcar como pagado</button></form>
+                            <form method="post" action="{{ route('contracted-services.mark-paid', $service) }}" class="inline">@csrf<button class="button bg-emerald-600 hover:bg-emerald-700" onclick="return confirm('¿Confirmas el pago del período con vencimiento {{ $service->billing_date->format('d/m/Y') }}?')">✓ Marcar como pagado</button></form>
                         @endif
                     </div>
                 </div>

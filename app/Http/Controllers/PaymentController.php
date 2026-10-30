@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\RejectPayment;
 use App\Enums\ChargeStatus;
 use App\Enums\PaymentStatus;
+use App\Http\Requests\RejectPaymentRequest;
 use App\Models\Charge;
 use App\Models\Payment;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -17,6 +20,7 @@ class PaymentController extends Controller
         $payments = Payment::with([
             'charges.contractedService.client',
             'charges.contractedService.catalogService',
+            'rejectedBy',
         ])->when($search !== '', fn ($query) => $query->where('currency', 'like', "%{$search}%")->orWhere('status', 'like', "%{$search}%"))->latest('received_at')->paginate(20)->withQueryString();
 
         return view('payments.index', compact('payments', 'search'));
@@ -40,10 +44,23 @@ class PaymentController extends Controller
         return redirect()->route('payments.index')->with('success', 'Pago registrado y pendiente de validar.');
     }
 
-    public function validatePayment(Payment $payment)
+    public function validatePayment(Payment $payment): RedirectResponse
     {
+        abort_unless($payment->status === PaymentStatus::Pending, 422, 'Solo se puede validar un pago pendiente.');
+
         $payment->update(['status' => PaymentStatus::Validated, 'validated_at' => now()]);
 
         return back()->with('success', 'Pago validado.');
+    }
+
+    public function reject(RejectPaymentRequest $request, Payment $payment, RejectPayment $rejectPayment): RedirectResponse
+    {
+        $rejectPayment->execute(
+            $payment,
+            $request->user(),
+            $request->string('rejection_reason')->trim()->toString(),
+        );
+
+        return back()->with('success', 'Pago anulado. Los cobros relacionados fueron recalculados sin borrar el historial.');
     }
 }

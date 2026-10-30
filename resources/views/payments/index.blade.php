@@ -27,9 +27,28 @@
                                 @endforelse
                             </td>
                             <td class="font-bold text-ink">{{ $payment->currency }} {{ number_format($payment->amount, 2) }}</td>
-                            <td>{{ $payment->status->value }}</td>
+                            <td>
+                                <p class="font-semibold text-ink">{{ match ($payment->status->value) { 'pending' => 'Pendiente', 'validated' => 'Validado', 'rejected' => 'Anulado' } }}</p>
+                                @if ($payment->status->value === 'rejected')
+                                    <p class="mt-1 max-w-xs text-xs text-red-700 dark:text-red-300">{{ $payment->rejection_reason }}</p>
+                                    <p class="mt-1 text-[11px] text-muted">{{ $payment->rejected_at?->format('d/m/Y H:i') }}{{ $payment->rejectedBy ? ' · '.$payment->rejectedBy->name : '' }}</p>
+                                @endif
+                            </td>
                             <td>{{ $payment->charges->count() }}</td>
-                            <td>@if ($payment->status->value === 'pending')<form method="post" action="{{ route('payments.validate', $payment) }}">@csrf<button class="font-bold text-emerald-700 dark:text-emerald-300">Validar</button></form>@endif</td>
+                            <td>
+                                @if ($payment->status->value === 'pending')
+                                    <form method="post" action="{{ route('payments.validate', $payment) }}">@csrf<button class="font-bold text-emerald-700 dark:text-emerald-300">Validar</button></form>
+                                @elseif ($payment->status->value === 'validated')
+                                    <details class="min-w-56">
+                                        <summary class="cursor-pointer font-bold text-red-600">Anular pago</summary>
+                                        <form method="post" action="{{ route('payments.reject', $payment) }}" class="mt-2 space-y-2">@csrf
+                                            <label class="block text-xs font-bold text-muted" for="rejection_reason_{{ $payment->id }}">Motivo obligatorio</label>
+                                            <textarea id="rejection_reason_{{ $payment->id }}" name="rejection_reason" class="input mt-0 min-h-20" maxlength="1000" required></textarea>
+                                            <button class="text-sm font-bold text-red-600 hover:underline" onclick="return confirm('¿Confirmas que deseas anular este pago? El cobro volverá a quedar pendiente.')">Confirmar anulación</button>
+                                        </form>
+                                    </details>
+                                @endif
+                            </td>
                         </tr>
                     @empty
                         <tr><td colspan="6" class="muted">No hay pagos que coincidan.</td></tr>
