@@ -75,6 +75,11 @@ class PaymentIndexTest extends TestCase
             ->assertSee('USD 100.00')
             ->assertSee('cobro con vencimiento 15/11/2026')
             ->assertSee('USD 50.00');
+
+        $this->get(route('payments.index', ['search' => 'Cliente identificado']))
+            ->assertOk()
+            ->assertSee('Cliente identificado')
+            ->assertSee('cobro con vencimiento 15/10/2026');
     }
 
     public function test_payments_index_marks_payments_without_an_assigned_service(): void

@@ -2,7 +2,7 @@
 
 @section('content')
     @include('partials.heading', ['heading' => 'Pagos recibidos', 'action' => route('payments.create')])
-    @include('partials.list-search', ['placeholder' => 'Buscar por moneda o estado', 'value' => $search])
+    @include('partials.list-search', ['placeholder' => 'Buscar por cliente, servicio, moneda o estado', 'value' => $search])
 
     <div class="surface overflow-hidden">
         <div class="overflow-x-auto">

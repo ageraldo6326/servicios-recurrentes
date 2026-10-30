@@ -21,7 +21,28 @@ class PaymentController extends Controller
             'charges.contractedService.client',
             'charges.contractedService.catalogService',
             'rejectedBy',
-        ])->when($search !== '', fn ($query) => $query->where('currency', 'like', "%{$search}%")->orWhere('status', 'like', "%{$search}%"))->latest('received_at')->paginate(20)->withQueryString();
+        ])->when($search !== '', function ($query) use ($search): void {
+            $term = "%{$search}%";
+
+            $query->where(function ($query) use ($search, $term): void {
+                $query->where('currency', 'like', $term)
+                    ->orWhere('status', 'like', $term)
+                    ->orWhere('rejection_reason', 'like', $term)
+                    ->orWhereHas('charges.contractedService.client', function ($client) use ($term): void {
+                        $client->where('name', 'like', $term)
+                            ->orWhere('phone', 'like', $term);
+                    })
+                    ->orWhereHas('charges.contractedService.catalogService', fn ($service) => $service->where('name', 'like', $term))
+                    ->orWhereHas('charges.contractedService', function ($service) use ($term): void {
+                        $service->where('ip', 'like', $term)
+                            ->orWhere('observations', 'like', $term);
+                    });
+
+                if (ctype_digit($search)) {
+                    $query->orWhereKey((int) $search);
+                }
+            });
+        })->latest('received_at')->paginate(20)->withQueryString();
 
         return view('payments.index', compact('payments', 'search'));
     }
