@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\SynchronizePendingCommitmentAmounts;
 use App\Enums\CommitmentPaymentStatus;
 use App\Enums\FinancialCommitmentFrequency;
 use App\Http\Requests\CancelFinancialCommitmentRequest;
@@ -48,19 +49,42 @@ class FinancialCommitmentController extends Controller
         ]);
     }
 
-    public function update(FinancialCommitmentRequest $request, FinancialCommitment $commitment): RedirectResponse
-    {
+    public function update(
+        FinancialCommitmentRequest $request,
+        FinancialCommitment $commitment,
+        SynchronizePendingCommitmentAmounts $synchronizePendingAmounts,
+    ): RedirectResponse {
         Gate::authorize('update', $commitment);
         $data = $request->validated();
+        $shouldSynchronizePendingAmounts = $commitment->cancelled_at === null
+            && $request->boolean('sync_pending_occurrence_amounts');
+        unset($data['sync_pending_occurrence_amounts']);
 
         if ($commitment->cancelled_at !== null) {
             $data['is_active'] = false;
         }
 
-        $commitment->update($data);
+        $updatedOccurrences = DB::transaction(function () use (
+            $commitment,
+            $data,
+            $shouldSynchronizePendingAmounts,
+            $synchronizePendingAmounts,
+        ): int {
+            $commitment->update($data);
+
+            return $shouldSynchronizePendingAmounts
+                ? $synchronizePendingAmounts->handle($commitment->refresh())
+                : 0;
+        });
+
+        $message = 'Compromiso financiero actualizado.';
+
+        if ($shouldSynchronizePendingAmounts) {
+            $message .= " Se actualizaron {$updatedOccurrences} obligaciones pendientes.";
+        }
 
         return redirect()->route('financial-agenda.commitments.index')
-            ->with('success', 'Compromiso financiero actualizado.');
+            ->with('success', $message);
     }
 
     public function cancel(CancelFinancialCommitmentRequest $request, FinancialCommitment $commitment): RedirectResponse

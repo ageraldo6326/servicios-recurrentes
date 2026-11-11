@@ -36,6 +36,20 @@
                 <span class="mt-1 block text-xs font-normal text-muted">Se usa para activar compromisos sin fecha de corte.</span>
             </label>
         </div>
+        @if($commitment->exists && $commitment->cancelled_at === null)
+            <div class="rounded-xl border border-line bg-surface-soft p-4">
+                <label class="flex items-start gap-3 text-sm font-bold text-ink">
+                    <input type="hidden" name="sync_pending_occurrence_amounts" value="0">
+                    <input class="mt-0.5" type="checkbox" name="sync_pending_occurrence_amounts" value="1" @checked(old('sync_pending_occurrence_amounts'))>
+                    <span>
+                        Aplicar el monto a las obligaciones pendientes ya generadas
+                        <span class="mt-1 block text-xs font-normal text-muted">
+                            Se ejecuta aunque el monto sugerido no haya cambiado. Incluye obligaciones proyectadas, vencidas y parcialmente pagadas; las pagadas y canceladas conservan su monto histórico.
+                        </span>
+                    </span>
+                </label>
+            </div>
+        @endif
         <div class="rounded-xl border border-line bg-surface-soft p-4">
             <label class="flex items-center gap-2 text-sm font-bold text-ink">
                 <input type="hidden" name="has_cutoff" value="0">

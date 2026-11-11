@@ -19,6 +19,7 @@ class FinancialCommitmentRequest extends FormRequest
             'has_cutoff' => $this->boolean('has_cutoff'),
             'is_credit_card' => $this->boolean('is_credit_card'),
             'is_active' => $this->boolean('is_active'),
+            'sync_pending_occurrence_amounts' => $this->boolean('sync_pending_occurrence_amounts'),
         ]);
     }
 
@@ -46,6 +47,7 @@ class FinancialCommitmentRequest extends FormRequest
             'payment_alert_days' => ['nullable', 'regex:/^\s*(\d{1,2}\s*,\s*)*\d{1,2}\s*$/'],
             'activation_days_before_due' => ['nullable', 'integer', 'between:0,365'],
             'is_active' => ['boolean'],
+            'sync_pending_occurrence_amounts' => ['boolean'],
             'observations' => ['nullable', 'string'],
         ];
     }
